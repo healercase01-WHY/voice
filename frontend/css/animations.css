@@ -1,0 +1,187 @@
+/* ============================================================
+   PATH: whisper/frontend/css/animations.css
+   PURPOSE: Every animation keyframe + scroll reveal system
+   CHANGE HERE: speeds, easing, scroll reveal behavior
+   DEPENDS ON: base.css must load first
+   ============================================================ */
+
+/* ─── SCROLL REVEAL SYSTEM ───────────────────────────────────
+   Elements start invisible, slide up into view.
+   JS in ui.js adds the .visible class when element
+   enters the viewport (via IntersectionObserver).
+
+   HOW TO USE:
+     Add class="reveal" to any element you want animated.
+     Add class="s1" through "s6" for stagger delays.
+
+   Example:
+     <h2 class="reveal">Title</h2>
+     <p class="reveal s1">Subtitle</p>   ← appears 80ms later
+     <p class="reveal s2">Text</p>       ← appears 160ms later
+   ─────────────────────────────────────────────────────────── */
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition:
+    opacity  0.65s cubic-bezier(0.2, 0, 0, 1),
+    transform 0.65s cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* Add .visible class via JS to trigger animation */
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Stagger delays — each step adds 80ms */
+.s1 { transition-delay: 0.08s !important; }
+.s2 { transition-delay: 0.16s !important; }
+.s3 { transition-delay: 0.24s !important; }
+.s4 { transition-delay: 0.32s !important; }
+.s5 { transition-delay: 0.40s !important; }
+.s6 { transition-delay: 0.48s !important; }
+
+/* Slide in from left variant */
+.reveal-left {
+  opacity: 0;
+  transform: translateX(-24px);
+  transition:
+    opacity  0.65s cubic-bezier(0.2, 0, 0, 1),
+    transform 0.65s cubic-bezier(0.2, 0, 0, 1);
+}
+
+.reveal-left.visible {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* ─── PAGE ENTER ─────────────────────────────────────────────
+   Applied when navigating to a new page.
+   ui.js adds this class after setting display:block.
+   ─────────────────────────────────────────────────────────── */
+@keyframes pageIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.page-enter {
+  animation: pageIn 0.45s cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* ─── CARD SLIDE UP ──────────────────────────────────────────
+   Used when a new step card appears (connect flow).
+   ─────────────────────────────────────────────────────────── */
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── LOGO DOT / LIVE DOT ────────────────────────────────────
+   Breathing animation used on:
+   - .nav-logo-dot (logo)
+   - .conn-live-dot (connected status)
+   - Any element needing a heartbeat feel
+   ─────────────────────────────────────────────────────────── */
+@keyframes breathe {
+  0%, 100% { opacity: 1;   transform: scale(1); }
+  50%       { opacity: 0.3; transform: scale(0.6); }
+}
+
+/* ─── HERO WAVEFORM ──────────────────────────────────────────
+   Static decorative waveform bars on the homepage.
+   Each bar gets a different animation-delay via JS.
+   ─────────────────────────────────────────────────────────── */
+@keyframes wv {
+  0%, 100% { transform: scaleY(0.15); opacity: 0.2; }
+  50%       { transform: scaleY(1);    opacity: 0.7; }
+}
+
+/* ─── LIVE WAVEFORM ──────────────────────────────────────────
+   Faster waveform used during active voice call.
+   Simulates audio activity (not real audio data).
+   FUTURE: Replace with real AudioContext analyser data.
+   ─────────────────────────────────────────────────────────── */
+@keyframes wlv {
+  0%, 100% { transform: scaleY(0.12); opacity: 0.25; }
+  50%       { transform: scaleY(1);    opacity: 0.75; }
+}
+
+/* ─── MATCHING SPINNER ───────────────────────────────────────
+   The two rings that spin while searching for a match.
+   Applied to .match-ring-outer and .match-ring-inner.
+   ─────────────────────────────────────────────────────────── */
+@keyframes rspin {
+  to { transform: rotate(360deg); }
+}
+
+/* ─── AVATAR PULSE ───────────────────────────────────────────
+   Expanding ring pulse around the avatar during call.
+   ─────────────────────────────────────────────────────────── */
+@keyframes avp {
+  0%, 100% { opacity: 1;   transform: scale(1); }
+  50%       { opacity: 0.3; transform: scale(1.04); }
+}
+
+/* ─── TICKER MARQUEE ─────────────────────────────────────────
+   Homepage scrolling keyword strip.
+   CHANGE: duration to make it scroll faster/slower.
+   ─────────────────────────────────────────────────────────── */
+@keyframes tick {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+/* ─── PULSE DOTS ─────────────────────────────────────────────
+   Dots below the match spinner.
+   Each dot staggered in components.css.
+   ─────────────────────────────────────────────────────────── */
+@keyframes pd {
+  0%, 100% { opacity: 0.2; transform: scale(0.5); }
+  50%       { opacity: 1;   transform: scale(1); }
+}
+
+/* ─── SVG ARC SPIN ───────────────────────────────────────────
+   Slow rotation used on decorative SVG arcs
+   in bento cards and the avatar icon.
+   ─────────────────────────────────────────────────────────── */
+@keyframes arcSpin {
+  to { transform: rotate(360deg); }
+}
+
+/* ─── TOAST IN/OUT ───────────────────────────────────────────
+   Handled via opacity + transform on .toast.show in components.css.
+   No separate keyframe needed.
+   ─────────────────────────────────────────────────────────── */
+
+/* ─── HERO GRID PARALLAX ─────────────────────────────────────
+   JS in ui.js moves the grid on scroll.
+   This just ensures smooth transition.
+   ─────────────────────────────────────────────────────────── */
+.hero-grid {
+  transition: transform 0.1s linear;
+}
+
+/* ─── STAT COUNTER ───────────────────────────────────────────
+   Stats count up when scrolled into view.
+   Handled by JS in ui.js — no CSS keyframe needed.
+   ─────────────────────────────────────────────────────────── */
+
+/* ─── REDUCED MOTION SUPPORT ─────────────────────────────────
+   Respects users who have set "Reduce Motion" in their OS.
+   This disables all animations for accessibility.
+   ─────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .reveal,
+  .reveal-left {
+    opacity: 1;
+    transform: none;
+  }
+}

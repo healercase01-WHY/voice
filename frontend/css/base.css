@@ -1,0 +1,248 @@
+/* ============================================================
+   PATH: whisper/frontend/css/base.css
+   PURPOSE: Global design system — variables, reset, typography
+   CHANGE HERE: colors, fonts, spacing scale, dark theme values
+   ============================================================ */
+
+/* ─── DESIGN TOKENS ─────────────────────────────────────────
+   All colors, sizes, and spacing live here.
+   Change a value once → updates the entire app.
+   ─────────────────────────────────────────────────────────── */
+:root {
+  /* Background layers (darkest to slightly lighter) */
+  --bg:        #05060d;   /* page background */
+  --bg1:       #080a14;   /* nav, footer */
+  --bg2:       #0c0f1e;   /* cards */
+  --bg3:       #111528;   /* input fields, inner elements */
+  --bg4:       #161b30;   /* hover states */
+
+  /* Border colors */
+  --line:      rgba(255, 255, 255, 0.06);   /* subtle dividers */
+  --line2:     rgba(255, 255, 255, 0.10);   /* visible borders */
+  --line3:     rgba(99, 120, 255, 0.22);    /* accent borders */
+
+  /* Brand accent colors */
+  --a1:        #6378ff;   /* primary blue-purple */
+  --a2:        #9b6fff;   /* secondary purple */
+  --a3:        #3dcfb8;   /* teal (connected / live states) */
+  --a4:        #ff6b9d;   /* pink (rarely used) */
+
+  /* Text colors */
+  --txt:       #e8eaff;                     /* primary text */
+  --txt2:      rgba(200, 208, 255, 0.52);   /* secondary / muted */
+  --txt3:      rgba(200, 208, 255, 0.28);   /* very muted / hints */
+
+  /* Typography */
+  --font:      'Space Grotesk', sans-serif;
+  --mono:      'Space Mono', monospace;
+
+  /* Spacing scale */
+  --s1:  4px;
+  --s2:  8px;
+  --s3:  12px;
+  --s4:  16px;
+  --s5:  24px;
+  --s6:  32px;
+  --s7:  48px;
+  --s8:  64px;
+
+  /* Border radius */
+  --r1:  6px;
+  --r2:  10px;
+  --r3:  16px;
+  --r4:  20px;
+  --r5:  50%;  /* circle */
+
+  /* Transitions */
+  --ease:    cubic-bezier(0.2, 0, 0, 1);
+  --t-fast:  0.18s;
+  --t-med:   0.30s;
+  --t-slow:  0.50s;
+
+  /* Nav height — used to offset sticky elements */
+  --nav-h: 62px;
+}
+
+/* ─── RESET ──────────────────────────────────────────────────
+   Removes browser default styles so everything looks
+   consistent across Chrome, Firefox, Safari, Edge.
+   ─────────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--txt);
+  font-family: var(--font);
+  font-size: 15px;
+  line-height: 1.6;
+  min-height: 100vh;
+  overflow-x: hidden;
+  /* Prevents horizontal scroll on mobile */
+}
+
+img, video, canvas, svg {
+  display: block;
+  max-width: 100%;
+}
+
+button, input, select, textarea {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  outline: none;
+}
+
+button {
+  cursor: pointer;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+ul, ol {
+  list-style: none;
+}
+
+/* ─── TYPOGRAPHY ─────────────────────────────────────────────
+   Consistent heading and body text styles.
+   CHANGE HERE if you want different font sizes.
+   ─────────────────────────────────────────────────────────── */
+
+/* Import Google Fonts — requires internet connection */
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
+
+h1, h2, h3, h4 {
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.5px;
+  color: #fff;
+}
+
+h1 { font-size: clamp(32px, 6vw, 64px); letter-spacing: -2px; }
+h2 { font-size: clamp(22px, 4vw, 40px); letter-spacing: -1px; }
+h3 { font-size: clamp(16px, 2.5vw, 22px); }
+h4 { font-size: 15px; letter-spacing: 0; }
+
+p {
+  color: var(--txt2);
+  font-weight: 300;
+  line-height: 1.75;
+}
+
+/* Gradient text — used on hero heading highlights */
+.grad {
+  background: linear-gradient(135deg, var(--a1) 0%, var(--a2) 50%, var(--a3) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Monospace label style — used for status text, step counters */
+.mono {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+/* Section eyebrow label (small tag above headings) */
+.eyebrow {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 3px;
+  color: var(--a1);
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+/* The decorative line after the eyebrow text */
+.eyebrow::after {
+  content: '';
+  height: 1px;
+  background: var(--line2);
+  width: 48px;
+}
+
+/* ─── LAYOUT HELPERS ─────────────────────────────────────────
+   Reusable layout classes used across all pages.
+   ─────────────────────────────────────────────────────────── */
+
+/* Max-width centered container */
+.container {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0 var(--s6);
+}
+
+/* Section vertical padding */
+.section {
+  padding: var(--s8) var(--s6);
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+/* Horizontal divider line */
+.divider {
+  border: none;
+  border-top: 1px solid var(--line);
+}
+
+/* Full-width background stripe */
+.stripe {
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  background: var(--bg1);
+}
+
+/* Flex row center */
+.row-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s4);
+  flex-wrap: wrap;
+}
+
+/* ─── UTILITY ────────────────────────────────────────────────
+   Small single-purpose helpers.
+   ─────────────────────────────────────────────────────────── */
+.text-center  { text-align: center; }
+.text-muted   { color: var(--txt2); }
+.text-hint    { color: var(--txt3); font-size: 12px; }
+.text-accent  { color: var(--a1); }
+.text-live    { color: var(--a3); }
+.hidden       { display: none !important; }
+.sr-only      { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
+
+/* ─── SCROLLBAR ──────────────────────────────────────────────
+   Custom dark scrollbar for Chrome/Edge.
+   Firefox uses scrollbar-color below.
+   ─────────────────────────────────────────────────────────── */
+::-webkit-scrollbar       { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--a1); }
+html { scrollbar-color: var(--bg4) var(--bg); scrollbar-width: thin; }
+
+/* ─── SELECTION ──────────────────────────────────────────────
+   Text highlight color when user selects text.
+   ─────────────────────────────────────────────────────────── */
+::selection {
+  background: rgba(99, 120, 255, 0.3);
+  color: #fff;
+}

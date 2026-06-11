@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>VoiceMatch // Dev Lab</title>
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/animations.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+    <style>
+        body { background: var(--bg); color: var(--txt); font-family: var(--font); padding: 28px 20px; min-height: 100vh;
+            background-image: radial-gradient(ellipse 600px 400px at 10% 0%, rgba(99,120,255,0.04) 0%, transparent 70%),
+                              radial-gradient(ellipse 500px 300px at 90% 100%, rgba(155,111,255,0.04) 0%, transparent 70%); }
+        .page-header { max-width: 1100px; margin: 0 auto 28px; display: flex; justify-content: space-between; align-items: center; }
+        .logo-row { display: flex; align-items: center; gap: 10px; }
+        .logo-mark { width: 36px; height: 36px; background: linear-gradient(135deg, var(--a1), var(--a2)); border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+        .logo-title { font-size: 17px; font-weight: 800; letter-spacing: -0.3px; }
+        .logo-sub { font-size: 10px; color: var(--txt3); font-family: var(--mono); }
+        .server-pill { font-family: var(--mono); font-size: 10px; padding: 5px 12px; border-radius: 20px;
+            border: 1px solid var(--line); color: var(--txt3); display: flex; align-items: center; gap: 6px; }
+        .server-pill .sd { width: 6px; height: 6px; border-radius: 50%; background: #ef4444; transition: background 0.3s; }
+        .server-pill.live .sd { background: var(--a3); }
+
+        .grid { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: 1fr 360px; gap: 16px; }
+        .panel { background: var(--bg2); border: 1px solid var(--line); border-radius: 20px; padding: 22px; }
+        .panel-title { font-size: 10px; font-family: var(--mono); color: var(--txt3); text-transform: uppercase;
+            letter-spacing: 1.5px; margin-bottom: 18px; display: flex; align-items: center; gap: 7px; }
+        .panel-title::before { content:''; width:3px; height:11px; background: var(--a1); border-radius:2px; }
+
+        .status-badge { font-family: var(--mono); font-size: 11px; padding: 6px 13px; border-radius: 6px;
+            background: rgba(255,255,255,0.03); color: var(--txt3); border: 1px solid var(--line); display: inline-block; }
+        .status-badge.waiting { background: rgba(255,170,0,0.1); color: #ffaa00; border-color: rgba(255,170,0,0.2); animation: breathe 1.5s infinite; }
+        .status-badge.live    { background: rgba(61,207,184,0.1); color: var(--a3);  border-color: rgba(61,207,184,0.2); }
+        .status-badge.err     { background: rgba(239,68,68,0.1);  color: #ef4444;  border-color: rgba(239,68,68,0.2); }
+
+        .btn-row { display: flex; gap: 9px; flex-wrap: wrap; margin: 14px 0; }
+        .xbtn { font-family: var(--mono); font-size: 11px; font-weight: 600; padding: 9px 16px; border-radius: 8px;
+            border: 1px solid var(--line); background: rgba(255,255,255,0.03); color: var(--txt); cursor: pointer; transition: all 0.15s; }
+        .xbtn:hover:not(:disabled) { border-color: var(--a1); color: var(--a1); background: rgba(99,120,255,0.06); }
+        .xbtn:disabled { opacity: 0.28; cursor: not-allowed; }
+        .xbtn.pri  { background: rgba(99,120,255,0.1);  border-color: rgba(99,120,255,0.3);  color: var(--a1); }
+        .xbtn.pri:hover:not(:disabled) { background: rgba(99,120,255,0.18); }
+        .xbtn.dng  { background: rgba(239,68,68,0.07);  border-color: rgba(239,68,68,0.22);  color: #ef4444; }
+        .xbtn.dng:hover:not(:disabled) { background: rgba(239,68,68,0.14); }
+
+        .mic-box { background: rgba(255,255,255,0.02); border: 1px solid var(--line); border-radius: 10px; padding: 13px 15px; margin-bottom: 16px; }
+        .mic-lbl { font-size: 10px; font-family: var(--mono); color: var(--a1); margin-bottom: 7px; letter-spacing: 1px; }
+        .mic-sel { background: var(--bg); color: var(--txt); border: 1px solid rgba(255,255,255,0.07); padding: 8px 11px;
+            border-radius: 7px; width: 100%; font-family: var(--mono); font-size: 11px; cursor: pointer; outline: none; }
+        .mic-sel:focus { border-color: var(--a1); }
+
+        .vad-lbl { font-size: 10px; font-family: var(--mono); color: var(--txt3); margin-bottom: 7px; display: flex; justify-content: space-between; }
+        .vad-bg  { background: rgba(255,255,255,0.04); border-radius: 4px; height: 5px; overflow: hidden; margin-bottom: 16px; }
+        .vad-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--a3), var(--a1)); width: 0%; transition: width 0.08s; }
+
+        .nr-row { display: flex; align-items: center; justify-content: space-between;
+            background: rgba(99,120,255,0.04); border: 1px solid rgba(99,120,255,0.1);
+            border-radius: 10px; padding: 12px 15px; margin-bottom: 16px; }
+        .nr-title { font-size: 12px; font-weight: 700; color: var(--a1); }
+        .nr-sub   { font-size: 10px; font-family: var(--mono); color: var(--txt3); margin-top: 2px; }
+        .tog { position: relative; width: 38px; height: 21px; cursor: pointer; }
+        .tog input { opacity: 0; width: 0; height: 0; }
+        .tog-sl { position: absolute; inset: 0; background: rgba(255,255,255,0.09); border-radius: 21px; transition: 0.2s; }
+        .tog-sl:before { content:''; position: absolute; height: 15px; width: 15px; left: 3px; bottom: 3px; background: var(--txt3); border-radius: 50%; transition: 0.2s; }
+        input:checked + .tog-sl { background: rgba(99,120,255,0.3); }
+        input:checked + .tog-sl:before { transform: translateX(17px); background: var(--a1); }
+
+        .metric-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 9px; margin-bottom: 9px; }
+        .metric-grid.two { grid-template-columns: 1fr 1fr; }
+        .mbox { background: rgba(255,255,255,0.02); border: 1px solid var(--line); border-radius: 10px; padding: 13px; }
+        .mlbl { font-size: 9px; font-family: var(--mono); color: var(--txt3); text-transform: uppercase; letter-spacing: 1px; }
+        .mval { font-size: 18px; font-weight: 700; font-family: var(--mono); margin-top: 5px; color: var(--txt); }
+        .mval.g { color: var(--a3); } .mval.w { color: #ffaa00; } .mval.b { color: #ef4444; }
+        .codec-strip { margin-top: 14px; padding: 9px 13px; background: rgba(155,111,255,0.05);
+            border: 1px solid rgba(155,111,255,0.12); border-radius: 8px; font-family: var(--mono); font-size: 10px;
+            color: #9d7efa; display: flex; gap: 14px; flex-wrap: wrap; }
+        .ck { color: var(--txt3); margin-right: 4px; }
+
+        .terminal { background: #020306; border: 1px solid rgba(255,255,255,0.04); border-radius: 10px; padding: 14px;
+            height: 480px; overflow-y: auto; font-family: var(--mono); font-size: 10.5px; line-height: 1.7;
+            scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.08) transparent; }
+        .terminal::-webkit-scrollbar { width: 3px; }
+        .terminal::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 4px; }
+        .ll { display: flex; gap: 9px; margin-bottom: 1px; }
+        .lt { color: var(--txt3); flex-shrink: 0; } .lm { color: #718096; }
+
+        .back-link { font-family: var(--mono); font-size: 10px; color: var(--txt3); text-decoration: none; letter-spacing: 1px; }
+        .back-link:hover { color: var(--a1); }
+    </style>
+</head>
+<body>
+
+<div class="page-header">
+    <div class="logo-row">
+        <div class="logo-mark">🎙</div>
+        <div>
+            <div class="logo-title">VoiceMatch</div>
+            <div class="logo-sub">DEV LAB // WebRTC Telemetry</div>
+        </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:14px;">
+        <a href="index.html" class="back-link">← Back to App</a>
+        <div class="server-pill" id="serverPill">
+            <span class="sd"></span>
+            <span id="pillTxt">DISCONNECTED</span>
+        </div>
+    </div>
+</div>
+
+<div class="grid">
+    <!-- LEFT -->
+    <div>
+        <div class="panel" style="margin-bottom:16px;">
+            <div class="panel-title">Control Surface</div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+                <span id="statusBadge" class="status-badge">OFFLINE</span>
+                <span id="roomCtx" style="font-family:var(--mono);font-size:10px;color:var(--txt3);">No room</span>
+            </div>
+            <div class="btn-row">
+                <button id="micBtn"   class="xbtn pri">① Init Hardware</button>
+                <button id="queueBtn" class="xbtn" disabled>② Enter Queue</button>
+                <button id="killBtn"  class="xbtn dng" disabled>Disconnect</button>
+            </div>
+            <div class="mic-box">
+                <div class="mic-lbl">🎙 Active Mic Source</div>
+                <select id="micSel" class="mic-sel" disabled><option>Awaiting permission...</option></select>
+            </div>
+            <div class="vad-lbl"><span>MIC INPUT LEVEL</span><span id="vadDb">— dBFS</span></div>
+            <div class="vad-bg"><div class="vad-fill" id="vadFill"></div></div>
+            <div class="nr-row">
+                <div><div class="nr-title">AI Noise Reduction</div><div class="nr-sub">WebAudio spectral gate</div></div>
+                <label class="tog"><input type="checkbox" id="nrToggle" checked><span class="tog-sl"></span></label>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-title">Live Telemetry</div>
+            <div class="metric-grid" style="margin-bottom:9px;">
+                <div class="mbox"><div class="mlbl">ICE State</div><div id="iceState" class="mval b">IDLE</div></div>
+                <div class="mbox"><div class="mlbl">Bitrate</div><div id="bitrateVal" class="mval">0 <span style="font-size:11px;color:var(--txt3)">kbps</span></div></div>
+                <div class="mbox"><div class="mlbl">Round-Trip</div><div id="rttVal" class="mval">0 <span style="font-size:11px;color:var(--txt3)">ms</span></div></div>
+            </div>
+            <div class="metric-grid two">
+                <div class="mbox"><div class="mlbl">Packet Loss</div><div id="lossVal" class="mval">0 <span style="font-size:11px;color:var(--txt3)">pkts</span></div></div>
+                <div class="mbox"><div class="mlbl">Jitter</div><div id="jitterVal" class="mval">0 <span style="font-size:11px;color:var(--txt3)">ms</span></div></div>
+            </div>
+            <div class="codec-strip">
+                <span><span class="ck">CODEC</span><span id="cCodec">—</span></span>
+                <span><span class="ck">TARGET</span><span id="cBitrate">—</span></span>
+                <span><span class="ck">TRANSPORT</span><span id="cIce">—</span></span>
+                <span><span class="ck">NR</span><span id="cNr">Gate ON</span></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- RIGHT: Terminal -->
+    <div class="panel">
+        <div class="panel-title">Telemetry Pipeline Feed</div>
+        <div id="terminal" class="terminal"></div>
+    </div>
+</div>
+
+<audio id="remoteAudio" autoplay playsinline></audio>
+
+<script src="http://localhost:3000/socket.io/socket.io.js"></script>
+<script>
+// ══════════════════════════════════════════════════════
+//  VoiceMatch Dev Lab — v3 (fixed socket matchmaking)
+// ══════════════════════════════════════════════════════
+
+const socket = io('http://localhost:3000');
+
+let localStream = null, processedStream = null, pc = null, activeRoomId = null;
+let audioCtx = null, analyserNode = null, noiseGateNode = null;
+let nrEnabled = true;
+let statsInterval = null, vadInterval = null;
+let lastBytes = 0, lastTs = 0, lastLost = 0;
+
+const rtcConfig = {
+    iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+    ]
+};
+
+// ── Socket ─────────────────────────────────────────────
+socket.on('connect', () => {
+    log(`⬡ Node: ${socket.id}`, 'var(--a1)');
+    document.getElementById('serverPill').classList.add('live');
+    document.getElementById('pillTxt').innerText = 'PORT 3000 LIVE';
+    setStatus('READY', '');
+});
+
+socket.on('disconnect', () => {
+    document.getElementById('serverPill').classList.remove('live');
+    document.getElementById('pillTxt').innerText = 'DISCONNECTED';
+    log('⚡ Socket disconnected.', '#ef4444');
+    setStatus('OFFLINE', 'err');
+});
+
+// ── Matchmaking — socket-based (join-queue / match-waiting / match-success) ──
+socket.on('match-waiting', d => {
+    log(`⏳ ${d.message}`, '#ffaa00');
+    setStatus('SCANNING...', 'waiting');
+});
+
+socket.on('match-success', async ({ roomId, role }) => {
+    activeRoomId = roomId;
+    log(`⚡ Room: ${roomId.slice(-14)} | Role: ${role}`, 'var(--a3)');
+    document.getElementById('roomCtx').innerText = `🏠 ${roomId.slice(-12)}`;
+    setStatus('BRIDGING...', 'live');
+    document.getElementById('killBtn').disabled = false;
+    document.getElementById('queueBtn').disabled = true;
+
+    initPC();
+
+    if (role === 'A') {
+        // A sends the offer
+        setTimeout(async () => {
+            if (!pc) return;
+            let offer = await pc.createOffer();
+            offer.sdp = mungeSdp(offer.sdp);
+            await pc.setLocalDescription(offer);
+            socket.emit('lab-signal', { roomId: activeRoomId, offer });
+            log('📤 Offer sent.', '#9d7efa');
+        }, 700);
+    } else {
+        log('📥 Waiting for offer from peer...', '#9d7efa');
+    }
+});
+
+socket.on('lab-signal', async d => {
+    if (d.offer && pc) {
+        log('📥 Offer received — answering...', '#9d7efa');
+        await pc.setRemoteDescription(new RTCSessionDescription(d.offer));
+        let ans = await pc.createAnswer();
+        ans.sdp = mungeSdp(ans.sdp);
+        await pc.setLocalDescription(ans);
+        socket.emit('lab-signal', { roomId: activeRoomId, answer: ans });
+        log('📤 Answer sent.', '#9d7efa');
+    }
+    if (d.answer && pc) {
+        log('📥 Answer received.', '#9d7efa');
+        await pc.setRemoteDescription(new RTCSessionDescription(d.answer));
+    }
+    if (d.candidate && pc) {
+        try { await pc.addIceCandidate(new RTCIceCandidate(d.candidate)); } catch(e){}
+    }
+    if (d.peerDisconnectedSignal) {
+        log('⚠ Peer left.', '#ef4444');
+        resetLab();
+    }
+});
+
+// ── Controls ────────────────────────────────────────────
+document.getElementById('micBtn').addEventListener('click', initHardware);
+
+document.getElementById('queueBtn').addEventListener('click', () => {
+    log('🛰 Entering matchmaking pool...', '#9d7efa');
+    document.getElementById('queueBtn').disabled = true;
+    socket.emit('join-queue', { interests: [] });
+    setStatus('QUEUED', 'waiting');
+});
+
+document.getElementById('killBtn').addEventListener('click', () => {
+    if (activeRoomId) socket.emit('lab-signal', { roomId: activeRoomId, peerDisconnectedSignal: true });
+    log('🛑 Disconnected.', '#ef4444');
+    resetLab();
+});
+
+document.getElementById('nrToggle').addEventListener('change', e => {
+    nrEnabled = e.target.checked;
+    document.getElementById('cNr').innerText = nrEnabled ? 'Gate ON' : 'OFF';
+    log(`🔇 NR: ${nrEnabled ? 'ON' : 'OFF'}`, nrEnabled ? 'var(--a1)' : '#ffaa00');
+});
+
+// ── Audio ───────────────────────────────────────────────
+async function initHardware(deviceId = null) {
+    if (localStream) localStream.getTracks().forEach(t => t.stop());
+    const constraints = { echoCancellation: true, noiseSuppression: true, autoGainControl: true, sampleRate: 48000, channelCount: 1 };
+    if (deviceId) constraints.deviceId = { exact: deviceId };
+    try {
+        localStream = await navigator.mediaDevices.getUserMedia({ audio: constraints });
+        log(deviceId ? '🔄 Mic hot-swapped.' : '🎙 Audio captured (48kHz, EC=on).', 'var(--a3)');
+
+        if (!audioCtx) audioCtx = new AudioContext({ sampleRate: 48000 });
+        if (audioCtx.state === 'suspended') await audioCtx.resume();
+
+        const src = audioCtx.createMediaStreamSource(localStream);
+        analyserNode = audioCtx.createAnalyser(); analyserNode.fftSize = 1024;
+        noiseGateNode = buildGate(audioCtx);
+        const dest = audioCtx.createMediaStreamDestination();
+        src.connect(analyserNode); analyserNode.connect(noiseGateNode); noiseGateNode.connect(dest);
+        processedStream = dest.stream;
+
+        startVAD();
+
+        if (!deviceId) {
+            document.getElementById('micBtn').disabled = true;
+            document.getElementById('queueBtn').disabled = false;
+            setStatus('READY', '');
+            populateMics();
+        }
+
+        // If already in a call, replace the track
+        if (pc) {
+            const sender = pc.getSenders().find(s => s.track?.kind === 'audio');
+            if (sender) {
+                await sender.replaceTrack(processedStream.getAudioTracks()[0]);
+                log('📡 Track replaced live.', '#9d7efa');
+            }
+        }
+    } catch(e) {
+        log(`❌ ${e.message}`, '#ef4444');
+        setStatus('MIC ERROR', 'err');
+    }
+}
+
+function buildGate(ctx) {
+    const proc = ctx.createScriptProcessor(2048, 1, 1);
+    let g = 0; const T = 0.008, A = 0.94, R = 0.985;
+    proc.onaudioprocess = (e) => {
+        const i = e.inputBuffer.getChannelData(0), o = e.outputBuffer.getChannelData(0);
+        if (!nrEnabled) { o.set(i); return; }
+        let rms = 0; for (let x = 0; x < i.length; x++) rms += i[x]*i[x];
+        rms = Math.sqrt(rms/i.length);
+        const t = rms > T ? 1 : 0;
+        g = g*(t>g?A:R) + t*(1-(t>g?A:R));
+        for (let x = 0; x < i.length; x++) o[x] = i[x]*g;
+    };
+    return proc;
+}
+
+async function populateMics() {
+    const sel = document.getElementById('micSel');
+    const devs = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'audioinput');
+    sel.innerHTML = '';
+    devs.forEach((d,i) => { const o = document.createElement('option'); o.value = d.deviceId; o.text = d.label || `Mic ${i+1}`; sel.appendChild(o); });
+    sel.disabled = false;
+    sel.addEventListener('change', e => { log(`🎚 Switching mic...`); initHardware(e.target.value); });
+}
+
+function startVAD() {
+    clearInterval(vadInterval);
+    const data = new Uint8Array(analyserNode.frequencyBinCount);
+    vadInterval = setInterval(() => {
+        analyserNode.getByteTimeDomainData(data);
+        let rms = 0;
+        for (let i = 0; i < data.length; i++) { const v = (data[i]-128)/128; rms += v*v; }
+        rms = Math.sqrt(rms/data.length);
+        const pct = Math.min(rms*400, 100);
+        const db  = rms > 0 ? Math.round(20*Math.log10(rms)) : -60;
+        document.getElementById('vadFill').style.width = pct + '%';
+        document.getElementById('vadDb').innerText = db + ' dBFS';
+    }, 80);
+}
+
+// ── WebRTC ──────────────────────────────────────────────
+function initPC() {
+    if (pc) { pc.close(); pc = null; }
+    pc = new RTCPeerConnection(rtcConfig);
+    const s = processedStream || localStream;
+    if (s) s.getTracks().forEach(t => pc.addTrack(t, s));
+    else log('⚠ No audio stream — init hardware first!', '#ffaa00');
+
+    pc.onicecandidate = e => {
+        if (e.candidate && activeRoomId) {
+            log(`🧊 ${e.candidate.type}/${e.candidate.protocol}`, 'var(--txt3)');
+            document.getElementById('cIce').innerText = e.candidate.type;
+            socket.emit('lab-signal', { roomId: activeRoomId, candidate: e.candidate });
+        }
+    };
+    pc.ontrack = e => {
+        document.getElementById('remoteAudio').srcObject = e.streams[0];
+        log('🔊 Remote audio received.', 'var(--a3)');
+        setStatus('LIVE', 'live');
+        startStats();
+    };
+    pc.onconnectionstatechange = () => {
+        const s = pc.connectionState.toUpperCase();
+        const el = document.getElementById('iceState');
+        el.innerText = s;
+        el.className = 'mval ' + (s==='CONNECTED'?'g':s==='FAILED'?'b':'w');
+        log(`📡 ${s}`, s==='CONNECTED'?'var(--a3)':'#ffaa00');
+    };
+    pc.oniceconnectionstatechange = () => {
+        if (pc.iceConnectionState === 'failed') {
+            log('⚠ ICE failed → restart...', '#ffaa00');
+            pc.restartIce();
+        }
+    };
+    log('🔧 PeerConnection ready.', 'var(--txt3)');
+}
+
+function mungeSdp(sdp) {
+    const m = sdp.match(/a=rtpmap:(\d+) opus\/48000/);
+    if (!m) return sdp;
+    const pt = m[1];
+    sdp = sdp.replace(new RegExp(`a=fmtp:${pt} .*\r\n`,'g'),'');
+    sdp = sdp.replace(`a=rtpmap:${pt} opus/48000/2\r\n`,
+        `a=rtpmap:${pt} opus/48000/2\r\na=fmtp:${pt} useinbandfec=1;maxaveragebitrate=48000;cbr=0;stereo=0\r\n`);
+    log(`🎛 SDP: Opus pt=${pt}, 48kbps VBR, FEC=on`, '#9d7efa');
+    document.getElementById('cCodec').innerText = `Opus/${pt}`;
+    document.getElementById('cBitrate').innerText = '48kbps VBR';
+    return sdp;
+}
+
+function startStats() {
+    clearInterval(statsInterval);
+    statsInterval = setInterval(async () => {
+        if (!pc) return;
+        const stats = await pc.getStats();
+        stats.forEach(r => {
+            if (r.type === 'inbound-rtp' && r.kind === 'audio') {
+                if (lastTs > 0) {
+                    const kbps = Math.round(((r.bytesReceived - lastBytes)*8)/(r.timestamp - lastTs));
+                    const bel  = document.getElementById('bitrateVal');
+                    bel.innerHTML = `${kbps} <span style="font-size:11px;color:var(--txt3)">kbps</span>`;
+                    bel.className = 'mval ' + (kbps>20?'g':kbps>8?'w':'b');
+                }
+                lastBytes = r.bytesReceived; lastTs = r.timestamp;
+                const ld  = (r.packetsLost||0) - lastLost; lastLost = r.packetsLost||0;
+                const lel = document.getElementById('lossVal');
+                lel.innerHTML = `${r.packetsLost||0} <span style="font-size:11px;color:var(--txt3)">pkts</span>`;
+                lel.className = 'mval ' + (ld===0?'g':ld<5?'w':'b');
+                const jms = Math.round((r.jitter||0)*1000);
+                const jel = document.getElementById('jitterVal');
+                jel.innerHTML = `${jms} <span style="font-size:11px;color:var(--txt3)">ms</span>`;
+                jel.className = 'mval ' + (jms<20?'g':jms<50?'w':'b');
+            }
+            if (r.type === 'candidate-pair' && r.state === 'succeeded' && r.currentRoundTripTime !== undefined) {
+                const rtt = Math.round(r.currentRoundTripTime*1000);
+                const rel = document.getElementById('rttVal');
+                rel.innerHTML = `${rtt} <span style="font-size:11px;color:var(--txt3)">ms</span>`;
+                rel.className = 'mval ' + (rtt<80?'g':rtt<200?'w':'b');
+            }
+        });
+    }, 1000);
+}
+
+function resetLab() {
+    clearInterval(statsInterval); clearInterval(vadInterval);
+    if (pc) { pc.close(); pc = null; }
+    document.getElementById('remoteAudio').srcObject = null;
+    document.getElementById('roomCtx').innerText = 'No room';
+    ['iceState','bitrateVal','rttVal','lossVal','jitterVal'].forEach(id => {
+        const el = document.getElementById(id);
+        if (id === 'iceState') { el.innerText = 'IDLE'; el.className = 'mval b'; }
+        else el.innerHTML = `0 <span style="font-size:11px;color:var(--txt3)">—</span>`;
+    });
+    setStatus('READY', '');
+    document.getElementById('queueBtn').disabled = !(localStream);
+    document.getElementById('killBtn').disabled = true;
+    document.getElementById('micBtn').disabled = false;
+    activeRoomId = null; lastBytes = 0; lastTs = 0; lastLost = 0;
+    if (localStream) startVAD();
+    log('🔄 Lab reset.', 'var(--txt3)');
+}
+
+// ── Helpers ─────────────────────────────────────────────
+function log(msg, color = 'var(--txt3)') {
+    const t = document.getElementById('terminal');
+    const time = new Date().toLocaleTimeString('en-GB', { hour12: false });
+    t.innerHTML += `<div class="ll"><span class="lt">${time}</span><span class="lm" style="color:${color}">${msg}</span></div>`;
+    t.scrollTop = t.scrollHeight;
+}
+function setStatus(txt, cls) {
+    const el = document.getElementById('statusBadge');
+    el.innerText = txt; el.className = 'status-badge ' + cls;
+}
+</script>
+</body>
+</html>
