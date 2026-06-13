@@ -10,7 +10,7 @@ const path = require('path');
 const fs   = require('fs');
 const { Server } = require('socket.io');
 
-const PORT         = process.env.PORT || 3000;
+const PORT         = 3000;
 const ADMIN_SECRET = 'vm_admin_x9k2p7';
 
 const MIME = {
@@ -582,6 +582,7 @@ tr:hover td{background:rgba(99,120,255,0.025);}
 
   <div class="main">
 
+    <!-- OVERVIEW -->
     <div class="tab-panel act" id="tab-overview">
       <div class="stats-row" id="statsGrid"></div>
       <div class="sec-hd">
@@ -597,6 +598,7 @@ tr:hover td{background:rgba(99,120,255,0.025);}
       </tr></thead><tbody id="recentReports"></tbody></table></div>
     </div>
 
+    <!-- ACTIVE CALLS -->
     <div class="tab-panel" id="tab-active">
       <div class="sec-hd">
         <div class="sec-title">Live Calls <span class="cnt" id="liveCount2">0</span></div>
@@ -607,6 +609,7 @@ tr:hover td{background:rgba(99,120,255,0.025);}
       <div id="activeCallsFull"></div>
     </div>
 
+    <!-- QUEUE -->
     <div class="tab-panel" id="tab-queue">
       <div class="sec-hd">
         <div class="sec-title">Matchmaking Queue <span class="cnt" id="queueCount">0</span></div>
@@ -614,6 +617,7 @@ tr:hover td{background:rgba(99,120,255,0.025);}
       <div id="queueList"></div>
     </div>
 
+    <!-- CALL HISTORY -->
     <div class="tab-panel" id="tab-calls">
       <div class="sec-hd">
         <div class="sec-title">Call History <span class="cnt" id="callHistCount">0</span></div>
@@ -623,6 +627,7 @@ tr:hover td{background:rgba(99,120,255,0.025);}
       </tr></thead><tbody id="callHistBody"></tbody></table></div>
     </div>
 
+    <!-- REPORTS -->
     <div class="tab-panel" id="tab-reports">
       <div class="sec-hd">
         <div class="sec-title">All Reports <span class="cnt" id="allReportCount">0</span></div>
@@ -632,6 +637,7 @@ tr:hover td{background:rgba(99,120,255,0.025);}
       </tr></thead><tbody id="allReportsBody"></tbody></table></div>
     </div>
 
+    <!-- HOMEPAGE STATS EDITOR -->
     <div class="tab-panel" id="tab-homepage">
       <div class="edit-stats-panel">
         <div class="esp-title"><i class="ti ti-edit" style="color:var(--a1);font-size:14px;"></i>Edit Homepage Statistics</div>
@@ -649,6 +655,7 @@ tr:hover td{background:rgba(99,120,255,0.025);}
       </div>
     </div>
 
+    <!-- BROADCAST -->
     <div class="tab-panel" id="tab-broadcast">
       <div class="broadcast-panel">
         <div class="bp-title"><i class="ti ti-speakerphone" style="color:var(--a2);font-size:14px;"></i>Send Broadcast to All Users</div>
@@ -663,6 +670,7 @@ tr:hover td{background:rgba(99,120,255,0.025);}
       </div>
     </div>
 
+    <!-- IP BANS -->
     <div class="tab-panel" id="tab-bans">
       <div class="sec-hd">
         <div class="sec-title">Banned IPs <span class="cnt" id="banCount">0</span></div>
@@ -673,6 +681,7 @@ tr:hover td{background:rgba(99,120,255,0.025);}
       <div id="banList"></div>
     </div>
 
+    <!-- INTEREST DATA -->
     <div class="tab-panel" id="tab-interests">
       <div class="sec-hd"><div class="sec-title">Interest Frequency Heatmap</div></div>
       <div class="heatmap" id="interestHeatmap"></div>
@@ -681,6 +690,7 @@ tr:hover td{background:rgba(99,120,255,0.025);}
   </div>
 </div>
 
+<!-- BAN MODAL -->
 <div class="modal-overlay" id="banModal">
   <div class="modal-box">
     <div class="modal-title">Ban an IP Address</div>
@@ -726,7 +736,7 @@ function dur(sec) {
 function shortSid(sid) { return sid ? sid.slice(0,8)+'…' : '—'; }
 function reasonBadge(r) {
   const map = {harassment:'<span class="badge red">Harassment</span>',explicit:'<span class="badge amber">Explicit</span>',spam:'<span class="badge blue">Spam</span>',other:'<span class="badge purple">Other</span>'};
-  return map[r] || `<span class="badge">${r}</span>`;
+  return map[r] || '<span class="badge">' + r + '</span>';
 }
 
 function renderOverview() {
@@ -753,39 +763,39 @@ function renderOverview() {
 
   const rr = document.getElementById('recentReports');
   const rep5 = data.reports.slice(0,5);
-  rr.innerHTML = rep5.length ? rep5.map(r=>`<tr>
-    <td class="td-mono">${r.ts}</td>
-    <td>${reasonBadge(r.reason)}</td>
-    <td class="td-mono">${(r.roomId||'').slice(0,16)}…</td>
-    <td><span class="ip-chip">${r.reporterIp}</span></td>
-  </tr>`).join('') : '<tr><td colspan="4" class="empty-state">No reports yet</td></tr>';
+  rr.innerHTML = rep5.length ? rep5.map(r=>\`<tr>
+    <td class="td-mono">\${fmt(r.ts)}</td>
+    <td>\${reasonBadge(r.reason)}</td>
+    <td class="td-mono">\${(r.roomId||'').slice(0,16)}…</td>
+    <td><span class="ip-chip">\${r.reporterIp}</span></td>
+  </tr>\`).join('') : '<tr><td colspan="4" class="empty-state">No reports yet</td></tr>';
 }
 
 function mkStat(num, title, lbl, color, highlight) {
-  return `<div class="stat-card${highlight?' highlight':''}">
-    <div class="sc-val" style="color:${color||'#fff'}">${num}</div>
-    <div class="sc-lbl">${lbl}</div>
-  </div>`;
+  return \`<div class="stat-card\${highlight?' highlight':''}">
+    <div class="sc-val" style="color:\${color||'#fff'}">\${num}</div>
+    <div class="sc-lbl">\${lbl}</div>
+  </div>\`;
 }
 
 function renderActiveCard(ac) {
-  const qs = (ac.questionsShown||[]).map(i=>`<span class="ac-q">Q${i+1}</span>`).join('');
+  const qs = (ac.questionsShown||[]).map(i=>\`<span class="ac-q">Q\${i+1}</span>\`).join('');
   const elapsed = Math.round((Date.now()-new Date(ac.startTs))/1000);
-  return `<div class="ac-card">
+  return \`<div class="ac-card">
     <div class="ac-left">
-      <div class="ac-room">Room: ${ac.roomId.slice(0,28)}…</div>
+      <div class="ac-room">Room: \${ac.roomId.slice(0,28)}…</div>
       <div class="ac-peers">
-        <div class="ac-peer"><div class="ac-peer-sid">${shortSid(ac.peerA?.sid)}</div><div class="ac-peer-ip">${ac.peerA?.ip}</div></div>
+        <div class="ac-peer"><div class="ac-peer-sid">\${shortSid(ac.peerA?.sid)}</div><div class="ac-peer-ip">\${ac.peerA?.ip}</div></div>
         <div class="ac-vs">↔</div>
-        <div class="ac-peer"><div class="ac-peer-sid">${shortSid(ac.peerB?.sid)}</div><div class="ac-peer-ip">${ac.peerB?.ip}</div></div>
+        <div class="ac-peer"><div class="ac-peer-sid">\${shortSid(ac.peerB?.sid)}</div><div class="ac-peer-ip">\${ac.peerB?.ip}</div></div>
       </div>
-      <div class="ac-qs">${qs||'<span class="ac-q">No questions yet</span>'}</div>
+      <div class="ac-qs">\${qs||'<span class="ac-q">No questions yet</span>'}</div>
     </div>
     <div class="ac-right">
-      <div class="ac-timer">${dur(elapsed)}</div>
-      <button class="kill-btn" onclick="killCall('${ac.roomId}')">Kill Call</button>
+      <div class="ac-timer">\${dur(elapsed)}</div>
+      <button class="kill-btn" onclick="killCall('\${ac.roomId}')">Kill Call</button>
     </div>
-  </div>`;
+  </div>\`;
 }
 
 function renderActive() {
@@ -799,42 +809,42 @@ function renderQueue() {
   document.getElementById('queueCount').textContent = data.queue.length;
   const el = document.getElementById('queueList');
   if (!data.queue.length) { el.innerHTML='<div class="table-wrap"><div class="empty-state">Queue is empty</div></div>'; return; }
-  el.innerHTML = data.queue.map(u=>`<div class="queue-card">
+  el.innerHTML = data.queue.map(u=>\`<div class="queue-card">
     <div>
-      <div class="qc-sid">${shortSid(u.id)}</div>
-      <div class="qc-interests">${(u.interests||[]).map(i=>`<span class="qc-int">${i}</span>`).join('')||'<span style="font-size:9px;color:var(--txt3);">No interests</span>'}</div>
+      <div class="qc-sid">\${shortSid(u.id)}</div>
+      <div class="qc-interests">\${(u.interests||[]).map(i=>\`<span class="qc-int">\${i}</span>\`).join('')||'<span style="font-size:9px;color:var(--txt3);">No interests</span>'}</div>
     </div>
     <div class="qc-wait">Waiting…</div>
-  </div>`).join('');
+  </div>\`).join('');
 }
 
 function renderCalls() {
   document.getElementById('callHistCount').textContent = data.calls.length;
   const tb = document.getElementById('callHistBody');
-  tb.innerHTML = data.calls.length ? data.calls.map((c,i)=>`<tr>
-    <td class="td-mono">${i+1}</td>
-    <td class="td-mono" style="max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.roomId.slice(5,22)}…</td>
-    <td><span class="sid-chip">${shortSid(c.peerA?.sid)}</span><br><span class="ip-chip">${c.peerA?.ip}</span></td>
-    <td><span class="sid-chip">${shortSid(c.peerB?.sid)}</span><br><span class="ip-chip">${c.peerB?.ip}</span></td>
-    <td class="td-mono">${fmt(c.startTs)}</td>
-    <td><span class="badge green">${dur(c.durationSec)}</span></td>
-    <td>${(c.questionsShown||[]).map(q=>`<span class="badge blue">Q${q+1}</span>`).join(' ')}</td>
-  </tr>`).join('') : '<tr><td colspan="7" class="empty-state">No completed calls yet</td></tr>';
+  tb.innerHTML = data.calls.length ? data.calls.map((c,i)=>\`<tr>
+    <td class="td-mono">\${i+1}</td>
+    <td class="td-mono" style="max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">\${c.roomId.slice(5,22)}…</td>
+    <td><span class="sid-chip">\${shortSid(c.peerA?.sid)}</span><br><span class="ip-chip">\${c.peerA?.ip}</span></td>
+    <td><span class="sid-chip">\${shortSid(c.peerB?.sid)}</span><br><span class="ip-chip">\${c.peerB?.ip}</span></td>
+    <td class="td-mono">\${fmt(c.startTs)}</td>
+    <td><span class="badge green">\${dur(c.durationSec)}</span></td>
+    <td>\${(c.questionsShown||[]).map(q=>\`<span class="badge blue">Q\${q+1}</span>\`).join(' ')}</td>
+  </tr>\`).join('') : '<tr><td colspan="7" class="empty-state">No completed calls yet</td></tr>';
 }
 
 function renderReports() {
   document.getElementById('allReportCount').textContent = data.reports.length;
   const tb = document.getElementById('allReportsBody');
-  tb.innerHTML = data.reports.length ? data.reports.map((r,i)=>`<tr>
-    <td class="td-mono">${i+1}</td>
-    <td class="td-mono">${fmt(r.ts)}</td>
-    <td>${reasonBadge(r.reason)}</td>
-    <td style="max-width:180px;font-size:10px;color:var(--txt3);">${r.description||'—'}</td>
-    <td class="td-mono" style="max-width:100px">${(r.roomId||'').slice(0,14)}…</td>
-    <td><span class="sid-chip">${shortSid(r.reporterSid)}</span></td>
-    <td><span class="ip-chip">${r.reporterIp}</span></td>
-    <td><button class="kill-btn" onclick="banIpDirect('${r.reporterIp}')">Ban IP</button></td>
-  </tr>`).join('') : '<tr><td colspan="8" class="empty-state">No reports yet</td></tr>';
+  tb.innerHTML = data.reports.length ? data.reports.map((r,i)=>\`<tr>
+    <td class="td-mono">\${i+1}</td>
+    <td class="td-mono">\${fmt(r.ts)}</td>
+    <td>\${reasonBadge(r.reason)}</td>
+    <td style="max-width:180px;font-size:10px;color:var(--txt3);">\${r.description||'—'}</td>
+    <td class="td-mono" style="max-width:100px">\${(r.roomId||'').slice(0,14)}…</td>
+    <td><span class="sid-chip">\${shortSid(r.reporterSid)}</span></td>
+    <td><span class="ip-chip">\${r.reporterIp}</span></td>
+    <td><button class="kill-btn" onclick="banIpDirect('\${r.reporterIp}')">Ban IP</button></td>
+  </tr>\`).join('') : '<tr><td colspan="8" class="empty-state">No reports yet</td></tr>';
 }
 
 function renderHomepage() {
@@ -851,7 +861,7 @@ function renderHomepage() {
   const mc = document.getElementById('miniChart');
   mc.innerHTML = calls10.length ? calls10.map(c=>{
     const pct = ((c.durationSec||0)/maxDur)*100;
-    return `<div class="mini-bar" style="height:${Math.max(2,pct)}%" title="${dur(c.durationSec)}"></div>`;
+    return \`<div class="mini-bar" style="height:\${Math.max(2,pct)}%" title="\${dur(c.durationSec)}"></div>\`;
   }).join('') : '<div style="color:var(--txt3);font-size:10px;">No calls logged yet</div>';
 }
 
@@ -864,10 +874,10 @@ function renderBans() {
   const bans = data.bannedIPs||[];
   document.getElementById('banCount').textContent = bans.length;
   const el = document.getElementById('banList');
-  el.innerHTML = bans.length ? bans.map(ip=>`<div class="ban-item">
-    <span class="ban-ip">${ip}</span>
-    <button class="unban-btn" onclick="unbanIp('${ip}')">Unban</button>
-  </div>`).join('') : '<div style="font-size:11px;color:var(--txt3);padding:12px 0;">No IPs banned</div>';
+  el.innerHTML = bans.length ? bans.map(ip=>\`<div class="ban-item">
+    <span class="ban-ip">\${ip}</span>
+    <button class="unban-btn" onclick="unbanIp('\${ip}')">Unban</button>
+  </div>\`).join('') : '<div style="font-size:11px;color:var(--txt3);padding:12px 0;">No IPs banned</div>';
 }
 
 function renderInterests() {
@@ -875,11 +885,11 @@ function renderInterests() {
   const entries = Object.entries(freq).sort((a,b)=>b[1]-a[1]);
   const max = entries.length ? entries[0][1] : 1;
   const el = document.getElementById('interestHeatmap');
-  el.innerHTML = entries.length ? entries.map(([name,count])=>`<div class="hm-item">
-    <div class="hm-name">${name}</div>
-    <div class="hm-bar-wrap"><div class="hm-bar" style="width:${Math.max(5,(count/max)*100)}%"></div></div>
-    <div class="hm-count">${count} selections</div>
-  </div>`).join('') : '<div style="color:var(--txt3);font-size:11px;">No data yet</div>';
+  el.innerHTML = entries.length ? entries.map(([name,count])=>\`<div class="hm-item">
+    <div class="hm-name">\${name}</div>
+    <div class="hm-bar-wrap"><div class="hm-bar" style="width:\${Math.max(5,(count/max)*100)}%"></div></div>
+    <div class="hm-count">\${count} selections</div>
+  </div>\`).join('') : '<div style="color:var(--txt3);font-size:11px;">No data yet</div>';
 }
 
 async function saveHomepageStats() {
@@ -889,7 +899,7 @@ async function saveHomepageStats() {
     anonymous:   document.getElementById('es-anonymous').value,
     uptime:      document.getElementById('es-uptime').value,
   };
-  const r = await fetch(`/admin-api/update-stats?key=${KEY}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  const r = await fetch(\`/admin-api/update-stats?key=\${KEY}\`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
   const d = await r.json();
   if (d.ok) aToast('Homepage stats updated and pushed live');
   else aToast('Failed to update stats');
@@ -897,27 +907,27 @@ async function saveHomepageStats() {
 
 async function sendBroadcast() {
   const msg = document.getElementById('broadcastInput').value.trim();
-  await fetch(`/admin-api/broadcast?key=${KEY}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:msg})});
+  await fetch(\`/admin-api/broadcast?key=\${KEY}\`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:msg})});
   aToast(msg ? 'Broadcast sent to all users' : 'Broadcast cleared');
   document.getElementById('currentBroadcast').textContent = msg||'none';
 }
 async function clearBroadcast() {
   document.getElementById('broadcastInput').value='';
-  await fetch(`/admin-api/broadcast?key=${KEY}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:''})});
+  await fetch(\`/admin-api/broadcast?key=\${KEY}\`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:''})});
   aToast('Broadcast cleared');
   document.getElementById('currentBroadcast').textContent='none';
 }
 
 async function killCall(roomId) {
   if (!confirm('Kill this call? Both users will be disconnected.')) return;
-  const r = await fetch(`/admin-api/kill-call?key=${KEY}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId})});
+  const r = await fetch(\`/admin-api/kill-call?key=\${KEY}\`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId})});
   const d = await r.json();
   aToast(d.ok ? 'Call terminated' : 'Room not found');
   loadData();
 }
 async function confirmKillAll() {
   if (!data.active.length) { aToast('No active calls to kill'); return; }
-  if (!confirm(`Kill all ${data.active.length} active calls?`)) return;
+  if (!confirm(\`Kill all \${data.active.length} active calls?\`)) return;
   for (const ac of data.active) await killCall(ac.roomId);
   aToast('All calls terminated');
 }
@@ -927,15 +937,15 @@ function closeBanModal() { document.getElementById('banModal').classList.remove(
 async function submitBan() {
   const ip = document.getElementById('banIpInput').value.trim();
   if (!ip) return;
-  await fetch(`/admin-api/ban-ip?key=${KEY}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ip})});
+  await fetch(\`/admin-api/ban-ip?key=\${KEY}\`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ip})});
   closeBanModal(); aToast('IP banned: '+ip); loadData();
 }
 async function banIpDirect(ip) {
-  await fetch(`/admin-api/ban-ip?key=${KEY}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ip})});
+  await fetch(\`/admin-api/ban-ip?key=\${KEY}\`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ip})});
   aToast('IP banned: '+ip); loadData();
 }
 async function unbanIp(ip) {
-  await fetch(`/admin-api/unban-ip?key=${KEY}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ip})});
+  await fetch(\`/admin-api/unban-ip?key=\${KEY}\`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ip})});
   aToast('IP unbanned: '+ip); loadData();
 }
 
@@ -943,7 +953,7 @@ document.getElementById('banModal').addEventListener('click',function(e){if(e.ta
 
 async function loadData() {
   try {
-    const r = await fetch(`/admin-api/all?key=${KEY}`);
+    const r = await fetch(\`/admin-api/all?key=\${KEY}\`);
     data = await r.json();
     document.getElementById('lastUpdated').textContent = new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
     renderOverview(); renderActive(); renderQueue(); renderCalls();
