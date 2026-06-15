@@ -13,7 +13,7 @@
 const http    = require('http');
 const { Server } = require('socket.io');
 
-const ADMIN_SECRET = process.env.ADMIN_SECRET || 'vm_admin_x9k2p7';
+const ADMIN_SECRET = process.env.ADMIN_SECRET;
 
 // ── In-memory store ─────────────────────────────────────────────
 const callLog     = [];
