@@ -269,11 +269,18 @@ html{background:var(--bg);color:var(--txt);font-family:var(--gf);overflow-x:hidd
 @keyframes wlv{0%,100%{transform:scaleY(0.12);opacity:0.2;}50%{transform:scaleY(1);opacity:0.8;}}
 
 /* REACTIONS */
-.reactions-bar{display:flex;gap:6px;justify-content:center;margin-bottom:14px;flex-wrap:wrap;}
-.rx-btn{background:var(--bg3);border:1px solid var(--line);border-radius:8px;padding:6px 12px;font-size:16px;cursor:pointer;transition:all 0.18s;user-select:none;line-height:1;}
-.rx-btn:hover{background:var(--bg4);border-color:var(--line2);transform:scale(1.12);}
-.rx-float{position:fixed;font-size:24px;pointer-events:none;z-index:999;animation:rxFloat 1.8s ease-out forwards;}
-@keyframes rxFloat{0%{opacity:1;transform:translateY(0) scale(1);}100%{opacity:0;transform:translateY(-120px) scale(1.4);}}
+.rx-wrap{position:relative;display:flex;justify-content:center;margin-bottom:14px;}
+.rx-toggle-btn{display:flex;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--line);border-radius:20px;padding:7px 16px;cursor:pointer;transition:all 0.22s;font-family:var(--gf);font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--txt2);}
+.rx-toggle-btn:hover{border-color:var(--line2);color:var(--txt);background:var(--bg4);}
+.rx-toggle-btn.open{border-color:rgba(99,120,255,0.35);color:var(--a1);background:rgba(99,120,255,0.07);}
+.rx-tray{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;overflow:hidden;max-height:0;opacity:0;
+  transition:max-height 0.38s cubic-bezier(0.4,0,0.2,1),opacity 0.28s,padding 0.3s;
+  padding:0 0;pointer-events:none;}
+.rx-tray.open{max-height:60px;opacity:1;padding:10px 0 2px;pointer-events:all;}
+.rx-btn{background:var(--bg3);border:1px solid var(--line);border-radius:10px;padding:8px 12px;font-size:17px;cursor:pointer;transition:all 0.18s;user-select:none;line-height:1;}
+.rx-btn:hover{background:var(--bg4);border-color:rgba(99,120,255,0.3);transform:scale(1.14);}
+.rx-float{position:fixed;font-size:26px;pointer-events:none;z-index:999;animation:rxFloat 1.8s cubic-bezier(0.2,0,0,1) forwards;}
+@keyframes rxFloat{0%{opacity:1;transform:translateY(0) scale(1);}60%{opacity:0.8;transform:translateY(-60px) scale(1.3);}100%{opacity:0;transform:translateY(-120px) scale(0.9);}}
 
 /* ICEBREAKER */
 .ice-box{background:var(--bg2);border:1px solid var(--line2);border-radius:var(--r-md);padding:18px 20px;margin-bottom:16px;}
@@ -417,6 +424,13 @@ html{background:var(--bg);color:var(--txt);font-family:var(--gf);overflow-x:hidd
 .vol-slider{-webkit-appearance:none;width:100px;height:4px;border-radius:4px;background:rgba(255,255,255,0.1);outline:none;cursor:pointer;}
 .vol-slider::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;border-radius:50%;background:var(--a1);cursor:pointer;}
 
+
+/* Broadcast banner */
+.broadcast-banner{display:none;background:rgba(99,120,255,0.1);border-bottom:1px solid rgba(99,120,255,0.2);
+  padding:8px 20px;text-align:center;font-size:11px;color:var(--a1);font-family:var(--gf);position:relative;}
+.broadcast-banner.show{display:block;}
+.bb-close{position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--txt3);cursor:pointer;font-size:13px;}
+
 /* TOAST */
 .toast-wrap{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);pointer-events:none;z-index:600;}
 .toast{background:var(--bg4);border:1px solid var(--line2);color:var(--txt);font-size:11px;padding:10px 22px;
@@ -457,8 +471,9 @@ html{background:var(--bg);color:var(--txt);font-family:var(--gf);overflow-x:hidd
     <div class="nl" id="nl-features" onclick="nav('features')">Features</div>
     <div class="nl" id="nl-connect" onclick="nav('connect')">Connect</div>
   </div>
-  <button class="nav-btn" onclick="nav('connect')">Start Talking</button>
+  <button class="nav-btn" onclick="safeNavConnect()">Start Talking</button>
 </nav>
+<div class="broadcast-banner" id="broadcastBanner"><span id="broadcastText"></span><button class="bb-close" onclick="document.getElementById('broadcastBanner').classList.remove('show')"><i class="ti ti-x"></i></button></div>
 
 <!-- HOME PAGE -->
 <div class="page on" id="page-home">
@@ -468,7 +483,7 @@ html{background:var(--bg);color:var(--txt);font-family:var(--gf);overflow-x:hidd
     <h1 class="hero-h1 reveal s1">Real conversations.<br><span class="grad">No identity required.</span></h1>
     <p class="hero-sub reveal s2">Match with strangers through shared interests. Voice only. No profiles, no followers, no pressure.</p>
     <div class="hero-acts reveal s3">
-      <button class="btn-main" onclick="nav('connect')"><i class="ti ti-microphone"></i>Start talking</button>
+      <button class="btn-main" onclick="safeNavConnect()"><i class="ti ti-microphone"></i>Start talking</button>
       <button class="btn-ol" onclick="nav('features')">How it works<i class="ti ti-arrow-right"></i></button>
     </div>
     <div class="hero-canvas-wrap reveal s4">
@@ -667,31 +682,42 @@ html{background:var(--bg);color:var(--txt);font-family:var(--gf);overflow-x:hidd
       <div class="user-bubble">
         <div class="av-outer">
           <div class="avb2"></div><div class="avb1"></div>
-          <div class="av-inner" id="myAvatar">🧑
+          <div class="av-inner" id="myAvatar">
+            <span id="myAvatarEmoji" style="font-size:24px;line-height:1;">?</span>
             <div class="mute-badge"><i class="ti ti-microphone-off" style="font-size:7px;color:#fff;"></i></div>
           </div>
         </div>
-        <div class="user-lbl you">You</div>
+        <div class="user-lbl you" id="myCallLabel">You</div>
       </div>
-      <div class="conn-arrow">⟷</div>
+      <div class="conn-arrow"><i class="ti ti-arrows-exchange" style="font-size:14px;"></i></div>
       <div class="user-bubble">
         <div class="av-outer">
-          <div class="av-inner" id="peerAvatar">👤</div>
+          <div class="av-inner" id="peerAvatar">
+            <span id="peerAvatarEmoji" style="font-size:24px;line-height:1;">?</span>
+            <div class="mute-badge" id="peerMuteBadge" style="display:none;"><i class="ti ti-microphone-off" style="font-size:7px;color:#fff;"></i></div>
+          </div>
         </div>
-        <div class="user-lbl">Peer</div>
+        <div class="user-lbl" id="peerCallLabel">Stranger</div>
       </div>
     </div>
 
     <div class="ctags" id="cTagsEl"></div>
     <div class="wlive" id="wLive"></div>
 
-    <div class="reactions-bar" id="rxBar">
-      <button class="rx-btn" onclick="sendReaction('👍')">👍</button>
-      <button class="rx-btn" onclick="sendReaction('😂')">😂</button>
-      <button class="rx-btn" onclick="sendReaction('🔥')">🔥</button>
-      <button class="rx-btn" onclick="sendReaction('❤️')">❤️</button>
-      <button class="rx-btn" onclick="sendReaction('🤯')">🤯</button>
-      <button class="rx-btn" onclick="sendReaction('👏')">👏</button>
+    <div class="rx-wrap">
+      <button class="rx-toggle-btn" id="rxToggleBtn" onclick="toggleRxTray()">
+        <i class="ti ti-mood-happy" style="font-size:14px;"></i>Reactions
+      </button>
+      <div id="rxTray" class="rx-tray">
+        <button class="rx-btn" onclick="sendReaction('👍')">👍</button>
+        <button class="rx-btn" onclick="sendReaction('😂')">😂</button>
+        <button class="rx-btn" onclick="sendReaction('🔥')">🔥</button>
+        <button class="rx-btn" onclick="sendReaction('❤️')">❤️</button>
+        <button class="rx-btn" onclick="sendReaction('🤯')">🤯</button>
+        <button class="rx-btn" onclick="sendReaction('👏')">👏</button>
+        <button class="rx-btn" onclick="sendReaction('✨')">✨</button>
+        <button class="rx-btn" onclick="sendReaction('💯')">💯</button>
+      </div>
     </div>
 
     <!-- Icebreaker card -->
@@ -749,12 +775,6 @@ html{background:var(--bg);color:var(--txt);font-family:var(--gf);overflow-x:hidd
         <div class="cbc lg red"><i class="ti ti-phone-off" style="color:rgba(255,80,80,0.9);font-size:22px;"></i></div>
         <div class="clbl">End</div>
       </button>
-
-      <button class="cbtn" onclick="newIce()" title="New question">
-        <div class="cbc sm teal"><i class="ti ti-refresh" style="color:rgba(61,207,184,0.9);"></i></div>
-        <div class="clbl">New Q</div>
-      </button>
-
       <!-- FIX #2: Speaker button — left click blocks audio, right click shows output device selector -->
       <div class="speaker-btn-wrap">
         <button class="cbtn" id="speakerBtn"
@@ -783,11 +803,11 @@ html{background:var(--bg);color:var(--txt);font-family:var(--gf);overflow-x:hidd
     <div class="modal-title">Report this call</div>
     <div class="modal-sub">Help keep VoiceMatch safe. Reports are anonymous and reviewed by our safety team.</div>
     <div class="report-reasons" id="reportReasons">
-      <div class="rr-opt" onclick="selectReport(this,'harassment')"><div class="rr-icon">😤</div><div class="rr-txt">Harassment or abusive language</div></div>
-      <div class="rr-opt" onclick="selectReport(this,'explicit')"><div class="rr-icon">🔞</div><div class="rr-txt">Inappropriate or explicit content</div></div>
-      <div class="rr-opt" onclick="selectReport(this,'spam')"><div class="rr-icon">🤖</div><div class="rr-txt">Spam or bot activity</div></div>
+      <div class="rr-opt" onclick="selectReport(this,'harassment')"><i class="ti ti-mood-angry rr-icon" style="font-size:15px;color:var(--a4);"></i><div class="rr-txt">Harassment or abusive language</div></div>
+      <div class="rr-opt" onclick="selectReport(this,'explicit')"><i class="ti ti-alert-octagon rr-icon" style="font-size:15px;color:var(--a5);"></i><div class="rr-txt">Inappropriate or explicit content</div></div>
+      <div class="rr-opt" onclick="selectReport(this,'spam')"><i class="ti ti-robot rr-icon" style="font-size:15px;color:var(--a1);"></i><div class="rr-txt">Spam or bot activity</div></div>
       <!-- FIX #5: "Other concern" now shows description box -->
-      <div class="rr-opt" onclick="selectReport(this,'other')"><div class="rr-icon">⚠️</div><div class="rr-txt">Other safety concern</div></div>
+      <div class="rr-opt" onclick="selectReport(this,'other')"><i class="ti ti-alert-triangle rr-icon" style="font-size:15px;color:var(--a2);"></i><div class="rr-txt">Other safety concern</div></div>
     </div>
     <!-- Description textarea, shown only when "other" is selected -->
     <div class="report-desc-wrap" id="reportDescWrap">
@@ -803,7 +823,7 @@ html{background:var(--bg);color:var(--txt);font-family:var(--gf);overflow-x:hidd
 <audio id="remoteAudio" autoplay playsinline></audio>
 <div class="toast-wrap"><div class="toast" id="toast"></div></div>
 
-<script src="https://voicematch-backend-rure.onrender.com/socket.io/socket.io.js"></script>
+<script src="http://localhost:3000/socket.io/socket.io.js"></script>
 <script>
 // ═══════════════════════════════════════════════════════════════
 //  VoiceMatch Frontend v5 — All 8 fixes applied
@@ -993,11 +1013,15 @@ function buildMoods() {
 function initMicCanvas() {
   micPreviewCanvas = document.getElementById('micCanvas');
   if (!micPreviewCanvas) return;
-  // Set pixel dimensions to match display
-  const rect = micPreviewCanvas.getBoundingClientRect();
-  micPreviewCanvas.width = micPreviewCanvas.offsetWidth * window.devicePixelRatio || 400;
-  micPreviewCanvas.height = 60 * window.devicePixelRatio || 60;
+  // Force layout then measure
+  const w = micPreviewCanvas.parentElement?.offsetWidth || 380;
+  const dpr = window.devicePixelRatio || 1;
+  micPreviewCanvas.width  = Math.round(w * dpr);
+  micPreviewCanvas.height = Math.round(60 * dpr);
+  micPreviewCanvas.style.width  = w + 'px';
+  micPreviewCanvas.style.height = '60px';
   micPreviewCanvasCtx = micPreviewCanvas.getContext('2d');
+  micPreviewCanvasCtx.scale(dpr, dpr);
 }
 
 async function populateDevices() {
@@ -1162,8 +1186,13 @@ function step2() {
   document.getElementById('fc1').style.display='none';
   document.getElementById('fc2').style.display='block';
   setProgress(2,'Setup','2 / 3');
-  initMicCanvas();
-  populateDevices();
+  // FIX #3: defer so DOM is visible before we measure canvas
+  setTimeout(async () => {
+    initMicCanvas();
+    await populateDevices();
+    // Auto-start preview so user sees their mic level immediately
+    if (!micPreviewActive) await startMicPreview();
+  }, 80);
 }
 function step3() {
   stopMicPreview();
@@ -1189,7 +1218,7 @@ function cancelMatchmaking() {
 // ── Socket & WebRTC ────────────────────────────────────────────
 function initSocket() {
   if (socket) return;
-  socket = io('https://voicematch-backend-rure.onrender.com', { transports: ['polling'] });
+  socket = io('https://voicematch-backend-rure.onrender.com');
   socket.on('connect',()=>console.log('[Socket]',socket.id));
 
   socket.on('peer-ready', async({roomId,role})=>{
@@ -1215,6 +1244,13 @@ function initSocket() {
     if (d.candidate&&pc){try{await pc.addIceCandidate(new RTCIceCandidate(d.candidate));}catch(e){}}
     if (d.peerDisconnectedSignal){showToast(d.reason==='timeout'?'Room timed out.':'Peer disconnected.');endCallAndReset();}
     if (d.reaction){showReactionFloat(d.reaction,false);}
+    // FIX #9: peer mute status
+    if (d.peerMuted !== undefined) { setPeerMuted(d.peerMuted); }
+    // FIX #8: peer avatar info
+    if (d.avatarInfo) {
+      document.getElementById('peerAvatarEmoji').textContent = d.avatarInfo.emoji || '?';
+      document.getElementById('peerCallLabel').textContent  = d.avatarInfo.name  || 'Stranger';
+    }
     if (d.peerSid) peerSidInRoom = d.peerSid;
   });
 
@@ -1224,6 +1260,15 @@ function initSocket() {
     // Identify peer sid
     if (members) peerSidInRoom = members.find(id=>id!==socket.id)||null;
     updateQuestionUI();
+  });
+
+  socket.on('broadcast-msg',({message})=>{
+    const banner = document.getElementById('broadcastBanner');
+    const txt    = document.getElementById('broadcastText');
+    if (banner && txt) {
+      if (message) { txt.textContent = message; banner.classList.add('show'); }
+      else banner.classList.remove('show');
+    }
   });
   socket.on('skip-update',({votes})=>{
     skipVotesArr=votes||[]; mySkipVoted=skipVotesArr.includes(socket.id); updateSkipUI();
@@ -1319,9 +1364,10 @@ function mungeSdp(sdp) {
 function launchChat() {
   document.getElementById('cTagsEl').innerHTML=
     selInt.slice(0,3).map(i=>`<div class="ctag i">${i}</div>`).join('')+
-    (selMood?`<div class="ctag m">${selMood}`:'');
+    (selMood?`<div class="ctag m">${selMood}</div>`:'');
   const c=document.getElementById('wLive'); c.innerHTML='';
   for(let i=0;i<24;i++){const b=document.createElement('div');b.className='wlb';b.style.animationDelay=(Math.random()*0.8)+'s';b.style.animationDuration=(0.45+Math.random()*0.65)+'s';c.appendChild(b);}
+  assignAvatars();
   secs=0; if(timerInt) clearInterval(timerInt);
   timerInt=setInterval(()=>{secs++;const m=String(Math.floor(secs/60)).padStart(2,'0'),s=String(secs%60).padStart(2,'0');document.getElementById('chatTimer').textContent=m+':'+s;},1000);
   if (analyserNode){
@@ -1336,11 +1382,51 @@ function launchChat() {
   nav('chat');
 }
 
+
+// FIX #8: Random avatars + interesting codenames
+const AVATARS = ['🦊','🐺','🦁','🐯','🦄','🐲','🦅','🦋','🦜','🦩','🐙','🦑','🦈','🦭','🐻','🦝','🦡','🐨'];
+const CODENAMES = ['Signal','Echo','Cipher','Ghost','Phantom','Static','Vortex','Prism','Axiom','Quasar','Nexus','Vertex','Flux','Zenith','Apex','Nova','Pulse','Orbit'];
+let myAvatarEmoji = '', peerAvatarEmoji = '';
+
+function assignAvatars() {
+  const myIdx  = Math.floor(Math.random() * AVATARS.length);
+  const peerIdx = (myIdx + 1 + Math.floor(Math.random() * (AVATARS.length - 1))) % AVATARS.length;
+  const myCodeIdx   = Math.floor(Math.random() * CODENAMES.length);
+  const peerCodeIdx = (myCodeIdx + 1 + Math.floor(Math.random() * (CODENAMES.length - 1))) % CODENAMES.length;
+  myAvatarEmoji   = AVATARS[myIdx];
+  peerAvatarEmoji = AVATARS[peerIdx];
+  document.getElementById('myAvatarEmoji').textContent   = myAvatarEmoji;
+  document.getElementById('peerAvatarEmoji').textContent = peerAvatarEmoji;
+  document.getElementById('myCallLabel').textContent    = CODENAMES[myCodeIdx];
+  document.getElementById('peerCallLabel').textContent  = CODENAMES[peerCodeIdx];
+  // Broadcast my avatar to peer
+  if (socket && activeRoomId) {
+    socket.emit('lab-signal',{roomId:activeRoomId, avatarInfo:{emoji:myAvatarEmoji, name:CODENAMES[myCodeIdx]}});
+  }
+}
+
+// FIX #9: Peer mute detection
+function setPeerMuted(isMuted) {
+  const badge = document.getElementById('peerMuteBadge');
+  const avInner = document.getElementById('peerAvatar');
+  if (!badge || !avInner) return;
+  badge.style.display = isMuted ? 'flex' : 'none';
+  avInner.classList.toggle('muted-ring', isMuted);
+}
+
 // ── Reactions ──────────────────────────────────────────────────
 function sendReaction(emoji) {
   if (!callActive||!activeRoomId){showToast(emoji+' (demo)');showReactionFloat(emoji,true);return;}
   socket.emit('lab-signal',{roomId:activeRoomId,reaction:emoji});
   showReactionFloat(emoji,true);
+}
+
+// Reactions tray toggle
+let rxTrayOpen = false;
+function toggleRxTray() {
+  rxTrayOpen = !rxTrayOpen;
+  document.getElementById('rxTray').classList.toggle('open', rxTrayOpen);
+  document.getElementById('rxToggleBtn').classList.toggle('open', rxTrayOpen);
 }
 function showReactionFloat(emoji,isMine) {
   const el=document.createElement('div'); el.className='rx-float'; el.textContent=emoji;
@@ -1374,7 +1460,7 @@ async function submitReport() {
   closeReportModal();
   // FIX #4: Send to server for admin logging
   try {
-    await fetch('https://voicematch-backend-rure.onrender.com/api/report',{
+    await fetch('http://localhost:3000/api/report',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({socketId:socket?.id,targetSid:peerSidInRoom,roomId:activeRoomId,reason:reportReason,description})
     });
@@ -1394,8 +1480,8 @@ function updateQuestionUI() {
   setTimeout(()=>{qEl.textContent=q;qEl.style.opacity='1';qEl.style.transform='translateY(0)';},200);
   if (qCode) qCode.textContent=Q_CODES[idx]||'#—';
   if(tp){
-    if(isMe){tp.textContent='🔴 Your Turn';tp.className='turn-pill your';}
-    else{tp.textContent='⏳ Their Turn';tp.className='turn-pill their';}
+    if(isMe){tp.textContent='Your Turn';tp.className='turn-pill your';}
+    else{tp.textContent='Their Turn';tp.className='turn-pill their';}
   }
   mySkipVoted=skipVotesArr.includes(socket.id); updateSkipUI();
 }
@@ -1435,13 +1521,15 @@ function handleMuteToggle() {
   const disc=document.getElementById('myAvatar');
   if(disc){disc.classList.toggle('muted-ring',muted);disc.classList.remove('speaking');}
   showToast(muted?'Microphone muted':'Microphone live');
+  // FIX #9: notify peer of mute state
+  if (socket && activeRoomId) socket.emit('lab-signal',{roomId:activeRoomId, peerMuted:muted});
 }
 
 // FIX #1: NR toggle — only toggles the gate bypass flag, does NOT reconnect nodes
 function handleNRToggle() {
   nrEnabled=!nrEnabled;
   document.getElementById('nrC').className='cbc sm'+(nrEnabled?' nr-on':'');
-  showToast(nrEnabled?'🔉 Noise filter ON':'🔊 Noise filter OFF');
+  showToast(nrEnabled?'Noise filter ON':'Noise filter OFF');
 }
 
 // FIX #2: Speaker left-click blocks/unblocks remote audio
@@ -1593,8 +1681,45 @@ function showToast(msg){
   clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2800);
 }
 
+
+// FIX #6: Prevent joining a second queue while in call
+function safeNavConnect() {
+  if (callActive) {
+    showToast('You are already in a call');
+    nav('chat');
+    return;
+  }
+  nav('connect');
+}
 // ── Boot ───────────────────────────────────────────────────────
-buildTicker(); buildPills(); buildMoods();
+
+// Load real-time homepage stats from server
+async function loadHomepageStats() {
+  try {
+    const r = await fetch('/api/homepage-stats');
+    const d = await r.json();
+    const map = {
+      'Active users': d.activeUsers,
+      'Avg match time': d.avgMatch,
+      'Anonymous': d.anonymous,
+      'Always live': d.uptime,
+    };
+    document.querySelectorAll('.stat').forEach(el => {
+      const lbl = el.querySelector('.stat-l')?.textContent;
+      if (lbl && map[lbl]) {
+        const n = el.querySelector('.stat-n');
+        if (n) {
+          // Split value from suffix (K, s, %, /7)
+          const val = map[lbl];
+          const match = val.match(/^([\d.]+)(.*)$/);
+          if (match) n.innerHTML = match[1] + '<em>' + match[2] + '</em>';
+          else n.textContent = val;
+        }
+      }
+    });
+  } catch(e) {}
+}
+buildTicker(); buildPills(); buildMoods(); loadHomepageStats();
 setTimeout(()=>{
   initCanvas();
   document.querySelectorAll('#page-home .reveal').forEach((el,i)=>setTimeout(()=>el.classList.add('vis'),60+i*40));
