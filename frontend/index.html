@@ -823,7 +823,7 @@ html{background:var(--bg);color:var(--txt);font-family:var(--gf);overflow-x:hidd
 <audio id="remoteAudio" autoplay playsinline></audio>
 <div class="toast-wrap"><div class="toast" id="toast"></div></div>
 
-<script src="http://localhost:3000/socket.io/socket.io.js"></script>
+<script src="https://voicematch-backend-rure.onrender.com/socket.io/socket.io.js"></script>
 <script>
 // ═══════════════════════════════════════════════════════════════
 //  VoiceMatch Frontend v5 — All 8 fixes applied
@@ -1218,7 +1218,7 @@ function cancelMatchmaking() {
 // ── Socket & WebRTC ────────────────────────────────────────────
 function initSocket() {
   if (socket) return;
-  socket = io('https://voicematch-backend-rure.onrender.com');
+  socket = io('https://voicematch-backend-rure.onrender.com', { transports: ['polling'] });
   socket.on('connect',()=>console.log('[Socket]',socket.id));
 
   socket.on('peer-ready', async({roomId,role})=>{
@@ -1460,7 +1460,7 @@ async function submitReport() {
   closeReportModal();
   // FIX #4: Send to server for admin logging
   try {
-    await fetch('http://localhost:3000/api/report',{
+    await fetch('https://voicematch-backend-rure.onrender.com/api/report',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({socketId:socket?.id,targetSid:peerSidInRoom,roomId:activeRoomId,reason:reportReason,description})
     });
