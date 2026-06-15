@@ -289,6 +289,8 @@ html{background:var(--bg);color:var(--txt);font-family:var(--gf);overflow-x:hidd
 /* FIX #6: Question code sequence instead of Q1 */
 .ice-q-code{font-family:var(--mf);font-size:9px;color:var(--a2);letter-spacing:1px;background:rgba(155,111,255,0.08);border:1px solid rgba(155,111,255,0.2);padding:2px 8px;border-radius:4px;}
 .ice-txt{font-size:13px;color:var(--txt);line-height:1.65;font-weight:300;transition:opacity 0.3s,transform 0.3s;}
+.tw-cursor{display:inline-block;color:var(--a3);animation:twBlink 0.55s steps(1) infinite;margin-left:1px;font-size:11px;vertical-align:middle;}
+@keyframes twBlink{0%,49%{opacity:1;}50%,100%{opacity:0;}}
 .turn-pill{font-family:var(--mf);font-size:9px;letter-spacing:1px;text-transform:uppercase;
   padding:3px 9px;border-radius:4px;font-weight:700;transition:all 0.3s;}
 .turn-pill.your{background:rgba(239,68,68,0.12);color:#ef6464;border:1px solid rgba(239,68,68,0.25);}
@@ -1294,32 +1296,64 @@ async function startMatchmaking() {
   if (socket.connected) await doPost(); else socket.once('connect',doPost);
 }
 
-// FIX #1: Audio init — keep clean signal path; noise gate never breaks the through signal
+// ── DTLN Neural Noise Suppression (@workadventure/noise-suppression) ──────────
+// AudioWorklet DTLN model — WASM, runs in parallel thread
+let dtlnWorklet = null; // { node, ready, dispose }
+
+// FIX #1 + DTLN: Audio init — DTLN neural NR by default, graceful fallback to basic gate
 async function initAudio(deviceId) {
   const useDevice = deviceId || activeMicDeviceId;
+  // Disable browser NR — DTLN handles it at neural level
   const constraints = {
-    audio: useDevice ? {deviceId:{exact:useDevice},echoCancellation:true,noiseSuppression:true,autoGainControl:true,sampleRate:48000,channelCount:1}
-                     : {echoCancellation:true,noiseSuppression:true,autoGainControl:true,sampleRate:48000,channelCount:1}
+    audio: useDevice
+      ? {deviceId:{exact:useDevice},echoCancellation:true,noiseSuppression:false,autoGainControl:true,sampleRate:16000,channelCount:1}
+      : {echoCancellation:true,noiseSuppression:false,autoGainControl:true,sampleRate:16000,channelCount:1}
   };
   localStream = await navigator.mediaDevices.getUserMedia(constraints);
   if (useDevice) activeMicDeviceId = useDevice;
 
-  audioCtx = new (window.AudioContext||window.webkitAudioContext)({sampleRate:48000});
+  // DTLN requires 16kHz; Opus/WebRTC will handle resampling to 48k automatically
+  audioCtx = new (window.AudioContext||window.webkitAudioContext)({sampleRate:16000});
   if (audioCtx.state==='suspended') await audioCtx.resume();
 
   sourceNode = audioCtx.createMediaStreamSource(localStream);
   analyserNode = audioCtx.createAnalyser(); analyserNode.fftSize=1024;
-
-  // FIX #1: Gate is bypass-able — when nrEnabled=false output = dry signal
-  noiseGateNode = buildGate(audioCtx);
   gainNode = audioCtx.createGain(); gainNode.gain.value=1.0;
   const dest = audioCtx.createMediaStreamDestination();
 
-  sourceNode.connect(analyserNode);
-  analyserNode.connect(noiseGateNode);
-  noiseGateNode.connect(gainNode);
-  gainNode.connect(dest);
-  processedStream=dest.stream;
+  // Try DTLN neural noise suppression
+  let usedDTLN = false;
+  if (nrEnabled) {
+    try {
+      const cdnUrl = 'https://cdn.jsdelivr.net/npm/@workadventure/noise-suppression@0.0.4/dist/audio-worklet.js';
+      const mod = await import(cdnUrl);
+      const createFn = mod.createNoiseSuppressionAudioWorklet || mod.default?.createNoiseSuppressionAudioWorklet;
+      if (createFn) {
+        const worklet = await createFn(audioCtx, { bypassUntilReady: true });
+        sourceNode.connect(analyserNode);
+        analyserNode.connect(worklet.node);
+        worklet.node.connect(gainNode);
+        gainNode.connect(dest);
+        noiseGateNode = worklet.node;
+        dtlnWorklet = worklet;
+        await worklet.ready;
+        usedDTLN = true;
+        console.log('[DTLN] Neural noise suppression active ✓');
+      }
+    } catch(e) {
+      console.warn('[DTLN] Init failed, falling back to noise gate:', e.message);
+    }
+  }
+
+  if (!usedDTLN) {
+    // Fallback: spectral noise gate
+    noiseGateNode = buildGate(audioCtx);
+    sourceNode.connect(analyserNode);
+    analyserNode.connect(noiseGateNode);
+    noiseGateNode.connect(gainNode);
+    gainNode.connect(dest);
+  }
+  processedStream = dest.stream;
 }
 
 function buildGate(ctx) {
@@ -1327,7 +1361,6 @@ function buildGate(ctx) {
   let g=0; const T=0.008,A=0.94,R=0.985;
   proc.onaudioprocess=e=>{
     const inp=e.inputBuffer.getChannelData(0), out=e.outputBuffer.getChannelData(0);
-    // FIX #1: When NR disabled, pass audio through unchanged — no blocking
     if (!nrEnabled) { out.set(inp); return; }
     let rms=0; for(let x=0;x<inp.length;x++) rms+=inp[x]*inp[x]; rms=Math.sqrt(rms/inp.length);
     const target=rms>T?1:0; g=g*(target>g?A:R)+target*(1-(target>g?A:R));
@@ -1430,9 +1463,12 @@ function toggleRxTray() {
 }
 function showReactionFloat(emoji,isMine) {
   const el=document.createElement('div'); el.className='rx-float'; el.textContent=emoji;
-  const bar=document.getElementById('rxBar'); if(!bar) return;
+  // Use rx-wrap as anchor (rxBar doesn't exist)
+  const bar=document.getElementById('rxTray')||document.getElementById('rxToggleBtn')||document.querySelector('.rx-wrap');
+  if(!bar){document.body.appendChild(el);el.style.left='50%';el.style.top='50%';setTimeout(()=>el.remove(),1900);return;}
   const rect=bar.getBoundingClientRect();
-  el.style.left=(rect.left+Math.random()*rect.width)+'px'; el.style.top=(rect.top-10)+'px';
+  el.style.left=(rect.left+Math.random()*Math.max(rect.width,60))+'px';
+  el.style.top=(rect.top+window.scrollY-10)+'px';
   document.body.appendChild(el); setTimeout(()=>el.remove(),1900);
 }
 
@@ -1469,6 +1505,62 @@ async function submitReport() {
 }
 document.getElementById('reportModal').addEventListener('click',function(e){if(e.target===this) closeReportModal();});
 
+// ── Typewriter + Hacker Sound ──────────────────────────────────
+let typewriterTimer = null;
+
+function playHackerType(audioCtx) {
+  // Robotic hacker typing: short noise burst for each keystroke
+  const buf = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.018, audioCtx.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < d.length; i++) {
+    // Mix white noise + sharp click
+    d[i] = (Math.random() * 2 - 1) * Math.exp(-i / (d.length * 0.3)) * 0.55;
+  }
+  const src = audioCtx.createBufferSource();
+  src.buffer = buf;
+  // High-pass to make it crisp/digital
+  const hp = audioCtx.createBiquadFilter();
+  hp.type = 'highpass'; hp.frequency.value = 1800;
+  const gain = audioCtx.createGain(); gain.gain.value = 0.28;
+  src.connect(hp); hp.connect(gain); gain.connect(audioCtx.destination);
+  src.start();
+}
+
+let typeSfxCtx = null;
+function ensureTypeSfxCtx() {
+  if (!typeSfxCtx || typeSfxCtx.state === 'closed') {
+    typeSfxCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (typeSfxCtx.state === 'suspended') typeSfxCtx.resume().catch(()=>{});
+  return typeSfxCtx;
+}
+
+function typewriterReveal(el, text, onDone) {
+  if (typewriterTimer) { clearInterval(typewriterTimer); typewriterTimer = null; }
+  el.textContent = '';
+  let i = 0;
+  const ctx = ensureTypeSfxCtx();
+  // Cursor element
+  el.innerHTML = '<span class="tw-cursor">▮</span>';
+  const cursor = el.querySelector('.tw-cursor');
+  typewriterTimer = setInterval(() => {
+    if (i < text.length) {
+      // Insert char before cursor
+      cursor.insertAdjacentText('beforebegin', text[i]);
+      i++;
+      // Play sound on ~every char, skip spaces/punctuation occasionally for rhythm
+      if (text[i-1] !== ' ' || Math.random() > 0.6) {
+        try { playHackerType(ctx); } catch(e) {}
+      }
+    } else {
+      clearInterval(typewriterTimer); typewriterTimer = null;
+      // Remove blinking cursor after a beat
+      setTimeout(() => { if (cursor.parentNode) cursor.remove(); }, 900);
+      if (onDone) onDone();
+    }
+  }, 28); // ~36 chars/sec — fast hacker feel
+}
+
 // ── FIX #6: Question code sequence ────────────────────────────
 function updateQuestionUI() {
   const qEl=document.getElementById('iceTxt'),tp=document.getElementById('turnPill'),qCode=document.getElementById('qCode');
@@ -1476,8 +1568,12 @@ function updateQuestionUI() {
   const idx=currentQuestionIndex%QUESTIONS.length;
   const q=QUESTIONS[idx];
   const isMe=currentTurnSocketId===socket.id;
+  // Fade out, then typewriter in
   qEl.style.opacity='0'; qEl.style.transform='translateY(5px)';
-  setTimeout(()=>{qEl.textContent=q;qEl.style.opacity='1';qEl.style.transform='translateY(0)';},200);
+  setTimeout(()=>{
+    qEl.style.opacity='1'; qEl.style.transform='translateY(0)';
+    typewriterReveal(qEl, q);
+  },200);
   if (qCode) qCode.textContent=Q_CODES[idx]||'#—';
   if(tp){
     if(isMe){tp.textContent='Your Turn';tp.className='turn-pill your';}
@@ -1649,6 +1745,7 @@ function endCallAndReset() {
   stopMicPreview();
   if(pc){pc.close();pc=null;}
   if(localStream) localStream.getTracks().forEach(t=>t.stop());
+  if(dtlnWorklet){try{dtlnWorklet.dispose();}catch(e){} dtlnWorklet=null;}
   if(audioCtx){audioCtx.close();audioCtx=null;}
   document.getElementById('remoteAudio').srcObject=null;
   activeRoomId=null; localStream=null; processedStream=null; callActive=false;
