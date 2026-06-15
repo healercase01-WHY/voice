@@ -1696,7 +1696,7 @@ function safeNavConnect() {
 // Load real-time homepage stats from server
 async function loadHomepageStats() {
   try {
-    const r = await fetch('/api/homepage-stats');
+    const r = await fetch('https://voicematch-backend-rure.onrender.com/api/homepage-stats');
     const d = await r.json();
     const map = {
       'Active users': d.activeUsers,
