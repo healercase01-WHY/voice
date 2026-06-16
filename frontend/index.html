@@ -439,6 +439,298 @@ html{background:var(--bg);color:var(--txt);font-family:var(--gf);overflow-x:hidd
   border-radius:10px;opacity:0;transform:translateY(6px);transition:all 0.3s cubic-bezier(0.2,0,0,1);font-family:var(--gf);white-space:nowrap;}
 .toast.show{opacity:1;transform:translateY(0);}
 
+
+/* ═══════════════════════════════════════════════
+   GAME PANEL — split layout
+═══════════════════════════════════════════════ */
+
+/* Root split container for the chat page */
+.chat-root {
+  display: flex;
+  height: calc(100vh - 60px);
+  overflow: hidden;
+  position: relative;
+}
+
+/* Call column — shrinks when game opens */
+.call-col {
+  flex: 0 0 100%;
+  width: 100%;
+  overflow-y: auto;
+  transition: flex-basis 0.42s cubic-bezier(0.4,0,0.2,1), width 0.42s cubic-bezier(0.4,0,0.2,1);
+  border-right: 1px solid var(--line);
+}
+.chat-root.game-open .call-col {
+  flex: 0 0 340px;
+  width: 340px;
+  min-width: 280px;
+}
+
+/* Game column — hidden by default, slides in */
+.game-col {
+  flex: 1 1 0;
+  width: 0;
+  overflow: hidden;
+  transition: width 0.42s cubic-bezier(0.4,0,0.2,1), opacity 0.35s;
+  opacity: 0;
+  pointer-events: none;
+}
+.chat-root.game-open .game-col {
+  width: auto;
+  opacity: 1;
+  pointer-events: all;
+}
+
+/* Game panel inner */
+.game-panel {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg1);
+  overflow: hidden;
+}
+
+/* Panel header */
+.gp-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px 14px;
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+.gp-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--a2);
+  animation: breathe 2s ease-in-out infinite;
+}
+.gp-title {
+  font-family: var(--mf);
+  font-size: 11px; letter-spacing: 2.5px; text-transform: uppercase;
+  color: var(--txt); font-weight: 700;
+}
+.gp-close-btn {
+  background: transparent; border: 1px solid var(--line);
+  color: var(--txt3); border-radius: 6px; padding: 5px 9px;
+  cursor: pointer; transition: all 0.2s; display: flex; align-items: center;
+}
+.gp-close-btn:hover { border-color: var(--line2); color: var(--txt); }
+
+/* Lobby */
+#gameLobby { padding: 18px 20px; overflow-y: auto; flex: 1; }
+.gp-sub {
+  font-size: 11px; color: var(--txt3); margin-bottom: 16px;
+  font-family: var(--mf); letter-spacing: 0.5px; line-height: 1.6;
+}
+.gp-waiting-hint {
+  display: flex; align-items: center; gap: 8px;
+  background: rgba(155,111,255,0.06);
+  border: 1px solid rgba(155,111,255,0.18);
+  border-radius: 8px; padding: 10px 14px; margin-bottom: 16px;
+  font-family: var(--mf); font-size: 10px; color: var(--a2);
+  letter-spacing: 0.5px;
+}
+.gp-wait-dot {
+  width: 6px; height: 6px; border-radius: 50%; background: var(--a2); flex-shrink: 0;
+  animation: breathe 1.2s ease-in-out infinite;
+}
+
+/* Game grid */
+.game-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+.game-card {
+  background: var(--bg2); border: 1px solid var(--line);
+  border-radius: var(--r-md); padding: 18px 14px;
+  cursor: pointer; transition: all 0.22s; text-align: center;
+  position: relative; overflow: hidden;
+}
+.game-card:hover { background: var(--bg3); border-color: var(--line2); transform: translateY(-1px); }
+.game-card.selected {
+  background: rgba(155,111,255,0.08);
+  border-color: rgba(155,111,255,0.4);
+  box-shadow: 0 0 0 1px rgba(155,111,255,0.15);
+}
+.game-card.selected::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 50% 0%, rgba(155,111,255,0.09), transparent 70%);
+  pointer-events: none;
+}
+.gc-emoji { font-size: 28px; line-height: 1; margin-bottom: 8px; }
+.gc-name {
+  font-size: 12px; font-weight: 600; color: var(--txt); margin-bottom: 3px; letter-spacing: -0.2px;
+}
+.gc-desc { font-size: 10px; color: var(--txt3); font-family: var(--mf); letter-spacing: 0.3px; }
+.gc-badge {
+  position: absolute; top: 8px; right: 8px;
+  font-family: var(--mf); font-size: 8px; letter-spacing: 1px; text-transform: uppercase;
+  padding: 2px 6px; border-radius: 3px;
+  background: rgba(61,207,184,0.1); border: 1px solid rgba(61,207,184,0.25); color: var(--a3);
+}
+
+/* PLAY GAME button in status bar */
+.play-game-btn {
+  display: flex; align-items: center; gap: 6px;
+  background: rgba(155,111,255,0.1); border: 1px solid rgba(155,111,255,0.3);
+  color: var(--a2); font-family: var(--mf); font-size: 9px; letter-spacing: 1.5px;
+  text-transform: uppercase; padding: 6px 13px; border-radius: 8px;
+  cursor: pointer; transition: all 0.22s; white-space: nowrap;
+}
+.play-game-btn:hover { background: rgba(155,111,255,0.18); border-color: rgba(155,111,255,0.5); }
+.play-game-btn.active {
+  background: rgba(155,111,255,0.15); border-color: rgba(155,111,255,0.6);
+  color: #c0a8ff;
+}
+
+/* Active game area */
+#gameArea { display: flex; flex-direction: column; height: 100%; overflow: hidden; }
+.ga-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 20px; border-bottom: 1px solid var(--line); flex-shrink: 0;
+}
+.ga-game-name {
+  font-family: var(--mf); font-size: 11px; letter-spacing: 2px;
+  text-transform: uppercase; color: var(--a2);
+}
+.ga-quit-btn {
+  display: flex; align-items: center; gap: 5px;
+  background: transparent; border: 1px solid var(--line); color: var(--txt3);
+  font-family: var(--mf); font-size: 9px; letter-spacing: 1px; text-transform: uppercase;
+  padding: 5px 11px; border-radius: 6px; cursor: pointer; transition: all 0.2s;
+}
+.ga-quit-btn:hover { border-color: rgba(255,80,80,0.3); color: rgba(255,80,80,0.7); }
+.ga-status {
+  text-align: center; font-family: var(--mf); font-size: 10px;
+  letter-spacing: 1.5px; text-transform: uppercase; color: var(--txt3);
+  padding: 10px 20px; flex-shrink: 0;
+}
+.ga-board {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  padding: 12px; overflow: hidden;
+}
+.ga-result {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  background: rgba(4,5,14,0.88); backdrop-filter: blur(12px);
+  z-index: 10; animation: cardIn 0.35s cubic-bezier(0.2,0,0,1);
+}
+.gar-emoji { font-size: 56px; margin-bottom: 14px; }
+.gar-msg {
+  font-family: var(--mf); font-size: 13px; letter-spacing: 2px; text-transform: uppercase;
+  color: var(--txt); margin-bottom: 22px; text-align: center;
+}
+.ga-rematch-btn {
+  display: flex; align-items: center; gap: 7px;
+  background: rgba(155,111,255,0.12); border: 1px solid rgba(155,111,255,0.35);
+  color: var(--a2); font-family: var(--mf); font-size: 10px; letter-spacing: 1.5px;
+  text-transform: uppercase; padding: 10px 22px; border-radius: 9px;
+  cursor: pointer; transition: all 0.22s;
+}
+.ga-rematch-btn:hover { background: rgba(155,111,255,0.22); border-color: rgba(155,111,255,0.55); }
+
+/* ── TIC TAC TOE ── */
+.ttt-grid {
+  display: grid; grid-template-columns: repeat(3,1fr);
+  gap: 6px; width: min(280px, 90%); aspect-ratio: 1;
+}
+.ttt-cell {
+  background: var(--bg3); border: 1px solid var(--line2); border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 36px; cursor: pointer; transition: all 0.18s; aspect-ratio: 1;
+  user-select: none;
+}
+.ttt-cell:hover:not(.filled) { background: var(--bg4); border-color: rgba(155,111,255,0.35); }
+.ttt-cell.filled { cursor: default; }
+.ttt-cell.win-cell {
+  background: rgba(61,207,184,0.08);
+  border-color: rgba(61,207,184,0.4);
+  box-shadow: 0 0 12px rgba(61,207,184,0.12);
+}
+.ttt-x { color: var(--a1); }
+.ttt-o { color: var(--a4); }
+
+/* ── CONNECT FOUR ── */
+.c4-wrap { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%; }
+.c4-col-btns { display: flex; gap: 4px; }
+.c4-col-btn {
+  width: 36px; height: 24px; background: transparent;
+  border: 1px solid var(--line); border-radius: 5px; cursor: pointer;
+  color: var(--txt3); font-size: 10px; transition: all 0.15s;
+  display: flex; align-items: center; justify-content: center;
+}
+.c4-col-btn:hover { background: rgba(155,111,255,0.1); border-color: rgba(155,111,255,0.35); color: var(--a2); }
+.c4-col-btn:disabled { opacity: 0.3; cursor: default; }
+.c4-grid {
+  display: grid; grid-template-columns: repeat(7, 1fr);
+  gap: 4px; background: rgba(99,120,255,0.08);
+  border: 1px solid rgba(99,120,255,0.15); border-radius: 12px; padding: 10px;
+}
+.c4-cell {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: var(--bg2); border: 1px solid var(--line);
+  transition: all 0.25s;
+}
+.c4-cell.p1 { background: var(--a1); border-color: rgba(99,120,255,0.5); box-shadow: 0 0 10px rgba(99,120,255,0.3); }
+.c4-cell.p2 { background: var(--a4); border-color: rgba(255,107,157,0.5); box-shadow: 0 0 10px rgba(255,107,157,0.3); }
+.c4-cell.win-cell { animation: winPulse 0.6s ease-in-out 3; }
+@keyframes winPulse { 0%,100%{transform:scale(1);}50%{transform:scale(1.18);} }
+
+/* ── SNAKE & LADDER ── */
+.snl-wrap { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%; }
+.snl-board {
+  display: grid; grid-template-columns: repeat(10, 1fr);
+  gap: 2px; width: min(320px,90%); background: var(--bg3);
+  border: 1px solid var(--line); border-radius: 10px; padding: 6px;
+}
+.snl-cell {
+  aspect-ratio: 1; border-radius: 4px; background: var(--bg4);
+  border: 1px solid var(--line); display: flex; align-items: center;
+  justify-content: center; font-size: 9px; color: var(--txt3);
+  font-family: var(--mf); position: relative; transition: background 0.2s;
+}
+.snl-cell.snake { background: rgba(255,80,80,0.1); border-color: rgba(255,80,80,0.2); }
+.snl-cell.ladder { background: rgba(61,207,184,0.1); border-color: rgba(61,207,184,0.2); }
+.snl-cell.p1-here::after { content:'🦊'; font-size:11px; position:absolute; }
+.snl-cell.p2-here::after { content:'🐺'; font-size:11px; position:absolute; }
+.snl-cell.both-here::after { content:'🦊🐺'; font-size:8px; position:absolute; }
+.snl-dice-row { display: flex; align-items: center; gap: 14px; margin-top: 4px; }
+.snl-die {
+  width: 44px; height: 44px; background: var(--bg2); border: 1.5px solid var(--line2);
+  border-radius: 10px; display: flex; align-items: center; justify-content: center;
+  font-size: 24px; transition: transform 0.2s; user-select: none;
+}
+.snl-die.rolling { animation: dieRoll 0.5s ease-in-out; }
+@keyframes dieRoll { 0%,100%{transform:rotate(0deg);}25%{transform:rotate(-20deg);}75%{transform:rotate(20deg);} }
+.snl-roll-btn {
+  background: rgba(99,120,255,0.1); border: 1px solid rgba(99,120,255,0.3);
+  color: var(--a1); font-family: var(--mf); font-size: 9px; letter-spacing: 1.5px;
+  text-transform: uppercase; padding: 9px 18px; border-radius: 8px; cursor: pointer; transition: all 0.2s;
+}
+.snl-roll-btn:hover { background: rgba(99,120,255,0.2); }
+.snl-roll-btn:disabled { opacity: 0.35; cursor: default; }
+.snl-legend { display: flex; gap: 12px; font-family: var(--mf); font-size: 9px; color: var(--txt3); letter-spacing: 0.5px; }
+.snl-leg-item { display: flex; align-items: center; gap: 5px; }
+.snl-leg-dot { width: 8px; height: 8px; border-radius: 2px; }
+
+/* When call-col is narrow, compact the chat-pg */
+.chat-root.game-open .chat-pg { padding: 16px 12px 12px; }
+.chat-root.game-open .users-row { gap: 16px; margin-bottom: 14px; }
+.chat-root.game-open .av-outer { width: 60px; height: 60px; }
+.chat-root.game-open .av-inner { width: 44px; height: 44px; font-size: 18px; }
+.chat-root.game-open .ice-box { padding: 12px 14px; }
+.chat-root.game-open .ice-txt { font-size: 11px; }
+
+/* Responsive: stack on small screens */
+@media (max-width: 680px) {
+  .chat-root { flex-direction: column; height: auto; }
+  .chat-root.game-open .call-col { flex: 0 0 auto; width: 100%; border-right: none; border-bottom: 1px solid var(--line); }
+  .chat-root.game-open .game-col { width: 100%; min-height: 60vh; }
+  .game-panel { min-height: 60vh; }
+}
+
 /* FOOTER */
 .footer{border-top:1px solid var(--line);padding:24px 36px;display:flex;align-items:center;justify-content:space-between;background:var(--bg1);}
 .flogo{font-family:var(--mf);font-size:11px;letter-spacing:3px;color:var(--txt3);}
@@ -666,137 +958,199 @@ html{background:var(--bg);color:var(--txt);font-family:var(--gf);overflow-x:hidd
 
 <!-- CHAT PAGE -->
 <div class="page" id="page-chat">
-  <div class="chat-pg">
+  <div class="chat-root">
 
-    <div class="status-bar">
-      <div class="sb-left">
-        <div class="clive"><div class="clivdot"></div>Connected</div>
-        <div class="sb-divider"></div>
-        <div class="conn-quality">
-          <div class="cq-bars"><div class="cqb"></div><div class="cqb"></div><div class="cqb"></div><div class="cqb"></div></div>
-          Strong
-        </div>
-      </div>
-      <div class="ctimer" id="chatTimer">00:00</div>
-    </div>
+    <!-- LEFT: Call UI (shrinks when game panel opens) -->
+    <div class="call-col" id="callCol">
+      <div class="chat-pg">
 
-    <div class="users-row">
-      <div class="user-bubble">
-        <div class="av-outer">
-          <div class="avb2"></div><div class="avb1"></div>
-          <div class="av-inner" id="myAvatar">
-            <span id="myAvatarEmoji" style="font-size:24px;line-height:1;">?</span>
-            <div class="mute-badge"><i class="ti ti-microphone-off" style="font-size:7px;color:#fff;"></i></div>
+        <div class="status-bar">
+          <div class="sb-left">
+            <div class="clive"><div class="clivdot"></div>Connected</div>
+            <div class="sb-divider"></div>
+            <div class="conn-quality">
+              <div class="cq-bars"><div class="cqb"></div><div class="cqb"></div><div class="cqb"></div><div class="cqb"></div></div>
+              Strong
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div class="ctimer" id="chatTimer">00:00</div>
+            <!-- PLAY GAME BUTTON -->
+            <button class="play-game-btn" id="playGameBtn" onclick="toggleGamePanel()">
+              <i class="ti ti-device-gamepad-2" style="font-size:14px;"></i>
+              <span id="playGameBtnTxt">Play Game</span>
+            </button>
           </div>
         </div>
-        <div class="user-lbl you" id="myCallLabel">You</div>
-      </div>
-      <div class="conn-arrow"><i class="ti ti-arrows-exchange" style="font-size:14px;"></i></div>
-      <div class="user-bubble">
-        <div class="av-outer">
-          <div class="av-inner" id="peerAvatar">
-            <span id="peerAvatarEmoji" style="font-size:24px;line-height:1;">?</span>
-            <div class="mute-badge" id="peerMuteBadge" style="display:none;"><i class="ti ti-microphone-off" style="font-size:7px;color:#fff;"></i></div>
+
+        <div class="users-row">
+          <div class="user-bubble">
+            <div class="av-outer">
+              <div class="avb2"></div><div class="avb1"></div>
+              <div class="av-inner" id="myAvatar">
+                <span id="myAvatarEmoji" style="font-size:24px;line-height:1;">?</span>
+                <div class="mute-badge"><i class="ti ti-microphone-off" style="font-size:7px;color:#fff;"></i></div>
+              </div>
+            </div>
+            <div class="user-lbl you" id="myCallLabel">You</div>
+          </div>
+          <div class="conn-arrow"><i class="ti ti-arrows-exchange" style="font-size:14px;"></i></div>
+          <div class="user-bubble">
+            <div class="av-outer">
+              <div class="av-inner" id="peerAvatar">
+                <span id="peerAvatarEmoji" style="font-size:24px;line-height:1;">?</span>
+                <div class="mute-badge" id="peerMuteBadge" style="display:none;"><i class="ti ti-microphone-off" style="font-size:7px;color:#fff;"></i></div>
+              </div>
+            </div>
+            <div class="user-lbl" id="peerCallLabel">Stranger</div>
           </div>
         </div>
-        <div class="user-lbl" id="peerCallLabel">Stranger</div>
-      </div>
-    </div>
 
-    <div class="ctags" id="cTagsEl"></div>
-    <div class="wlive" id="wLive"></div>
+        <div class="ctags" id="cTagsEl"></div>
+        <div class="wlive" id="wLive"></div>
 
-    <div class="rx-wrap">
-      <button class="rx-toggle-btn" id="rxToggleBtn" onclick="toggleRxTray()">
-        <i class="ti ti-mood-happy" style="font-size:14px;"></i>Reactions
-      </button>
-      <div id="rxTray" class="rx-tray">
-        <button class="rx-btn" onclick="sendReaction('👍')">👍</button>
-        <button class="rx-btn" onclick="sendReaction('😂')">😂</button>
-        <button class="rx-btn" onclick="sendReaction('🔥')">🔥</button>
-        <button class="rx-btn" onclick="sendReaction('❤️')">❤️</button>
-        <button class="rx-btn" onclick="sendReaction('🤯')">🤯</button>
-        <button class="rx-btn" onclick="sendReaction('👏')">👏</button>
-        <button class="rx-btn" onclick="sendReaction('✨')">✨</button>
-        <button class="rx-btn" onclick="sendReaction('💯')">💯</button>
-      </div>
-    </div>
-
-    <!-- Icebreaker card -->
-    <div class="ice-box">
-      <div class="ice-lbl">
-        <div class="ice-lbl-left">
-          <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><circle cx="5" cy="5" r="4" stroke="rgba(61,207,184,0.6)" stroke-width="1"/><circle cx="5" cy="5" r="1.5" fill="rgba(61,207,184,0.5)"/></svg>
-          Icebreaker
-        </div>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <span class="turn-pill" id="turnPill">—</span>
-          <!-- FIX #6: Code sequence instead of Q-number -->
-          <span class="ice-q-code" id="qCode">#—</span>
-        </div>
-      </div>
-      <div class="ice-txt" id="iceTxt">Loading question...</div>
-      <div class="skip-row">
-        <button class="skip-btn" id="skipBtn" onclick="handleSkipVote()">
-          <i class="ti ti-player-skip-forward"></i> SKIP
-        </button>
-        <span class="skip-count s0" id="skipCount">0 / 2</span>
-      </div>
-    </div>
-
-    <div class="muted-bar" id="mutedBar">— Microphone muted —</div>
-
-    <div class="report-bar">
-      <div class="report-link" onclick="openReportModal()">
-        <i class="ti ti-flag" style="font-size:11px;"></i>Report this user
-      </div>
-    </div>
-
-    <!-- Controls -->
-    <!-- FIX #1: Filter button fixed (was blocking audio); FIX #2: Speaker replaces Next, FIX #7: Mic right-click menu -->
-    <div class="ctrls">
-      <!-- Mic with right-click context menu (FIX #7) -->
-      <div class="mic-wrap">
-        <button class="cbtn" id="muteBtn" onclick="handleMuteToggle()" oncontextmenu="openMicMenu(event)" title="Left-click mute · Right-click change mic">
-          <div class="cbc sm" id="muteC"><i class="ti ti-microphone" id="muteIc" style="color:var(--txt);"></i></div>
-          <div class="clbl" id="muteLbl">Mute</div>
-        </button>
-        <div class="mic-ctx-menu" id="micCtxMenu">
-          <span class="mic-menu-label">Input Device</span>
-          <div id="micMenuItems"></div>
-        </div>
-      </div>
-
-      <!-- FIX #1: Noise filter — only touches noise gate, never blocks audio path -->
-      <button class="cbtn" onclick="handleNRToggle()" id="nrBtn" title="Noise Filter">
-        <div class="cbc sm nr-on" id="nrC"><i class="ti ti-wave-sine" style="color:var(--a1);"></i></div>
-        <div class="clbl">Filter</div>
-      </button>
-
-      <button class="cbtn" onclick="handleEndCall()" title="End call">
-        <div class="cbc lg red"><i class="ti ti-phone-off" style="color:rgba(255,80,80,0.9);font-size:22px;"></i></div>
-        <div class="clbl">End</div>
-      </button>
-      <!-- FIX #2: Speaker button — left click blocks audio, right click shows output device selector -->
-      <div class="speaker-btn-wrap">
-        <button class="cbtn" id="speakerBtn"
-          onclick="handleSpeakerClick()"
-          oncontextmenu="openSpeakerMenu(event)"
-          title="Left-click block audio · Right-click change output">
-          <div class="cbc sm teal" id="speakerC"><i class="ti ti-volume" id="speakerIc" style="color:rgba(61,207,184,0.9);"></i></div>
-          <div class="clbl" id="speakerLbl">Audio</div>
-        </button>
-        <div class="speaker-ctx-menu" id="speakerCtxMenu">
-          <span class="spk-menu-label">Output Device</span>
-          <div id="speakerMenuItems"></div>
-          <div class="spk-vol-row">
-            <span class="spk-vol-label">VOL</span>
-            <input type="range" class="spk-vol-slider" id="remoteVolSlider" min="0" max="2" step="0.05" value="1" oninput="onRemoteVolChange(this)">
+        <div class="rx-wrap">
+          <button class="rx-toggle-btn" id="rxToggleBtn" onclick="toggleRxTray()">
+            <i class="ti ti-mood-happy" style="font-size:14px;"></i>Reactions
+          </button>
+          <div id="rxTray" class="rx-tray">
+            <button class="rx-btn" onclick="sendReaction('👍')">👍</button>
+            <button class="rx-btn" onclick="sendReaction('😂')">😂</button>
+            <button class="rx-btn" onclick="sendReaction('🔥')">🔥</button>
+            <button class="rx-btn" onclick="sendReaction('❤️')">❤️</button>
+            <button class="rx-btn" onclick="sendReaction('🤯')">🤯</button>
+            <button class="rx-btn" onclick="sendReaction('👏')">👏</button>
+            <button class="rx-btn" onclick="sendReaction('✨')">✨</button>
+            <button class="rx-btn" onclick="sendReaction('💯')">💯</button>
           </div>
         </div>
+
+        <!-- Icebreaker card -->
+        <div class="ice-box">
+          <div class="ice-lbl">
+            <div class="ice-lbl-left">
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><circle cx="5" cy="5" r="4" stroke="rgba(61,207,184,0.6)" stroke-width="1"/><circle cx="5" cy="5" r="1.5" fill="rgba(61,207,184,0.5)"/></svg>
+              Icebreaker
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span class="turn-pill" id="turnPill">—</span>
+              <span class="ice-q-code" id="qCode">#—</span>
+            </div>
+          </div>
+          <div class="ice-txt" id="iceTxt">Loading question...</div>
+          <div class="skip-row">
+            <button class="skip-btn" id="skipBtn" onclick="handleSkipVote()">
+              <i class="ti ti-player-skip-forward"></i> SKIP
+            </button>
+            <span class="skip-count s0" id="skipCount">0 / 2</span>
+          </div>
+        </div>
+
+        <div class="muted-bar" id="mutedBar">— Microphone muted —</div>
+
+        <div class="report-bar">
+          <div class="report-link" onclick="openReportModal()">
+            <i class="ti ti-flag" style="font-size:11px;"></i>Report this user
+          </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="ctrls">
+          <div class="mic-wrap">
+            <button class="cbtn" id="muteBtn" onclick="handleMuteToggle()" oncontextmenu="openMicMenu(event)" title="Left-click mute · Right-click change mic">
+              <div class="cbc sm" id="muteC"><i class="ti ti-microphone" id="muteIc" style="color:var(--txt);"></i></div>
+              <div class="clbl" id="muteLbl">Mute</div>
+            </button>
+            <div class="mic-ctx-menu" id="micCtxMenu">
+              <span class="mic-menu-label">Input Device</span>
+              <div id="micMenuItems"></div>
+            </div>
+          </div>
+
+          <button class="cbtn" onclick="handleNRToggle()" id="nrBtn" title="Noise Filter">
+            <div class="cbc sm nr-on" id="nrC"><i class="ti ti-wave-sine" style="color:var(--a1);"></i></div>
+            <div class="clbl">Filter</div>
+          </button>
+
+          <button class="cbtn" onclick="handleEndCall()" title="End call">
+            <div class="cbc lg red"><i class="ti ti-phone-off" style="color:rgba(255,80,80,0.9);font-size:22px;"></i></div>
+            <div class="clbl">End</div>
+          </button>
+
+          <div class="speaker-btn-wrap">
+            <button class="cbtn" id="speakerBtn"
+              onclick="handleSpeakerClick()"
+              oncontextmenu="openSpeakerMenu(event)"
+              title="Left-click block audio · Right-click change output">
+              <div class="cbc sm teal" id="speakerC"><i class="ti ti-volume" id="speakerIc" style="color:rgba(61,207,184,0.9);"></i></div>
+              <div class="clbl" id="speakerLbl">Audio</div>
+            </button>
+            <div class="speaker-ctx-menu" id="speakerCtxMenu">
+              <span class="spk-menu-label">Output Device</span>
+              <div id="speakerMenuItems"></div>
+              <div class="spk-vol-row">
+                <span class="spk-vol-label">VOL</span>
+                <input type="range" class="spk-vol-slider" id="remoteVolSlider" min="0" max="2" step="0.05" value="1" oninput="onRemoteVolChange(this)">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div><!-- /chat-pg -->
+    </div><!-- /call-col -->
+
+    <!-- RIGHT: Game Panel (slides in) -->
+    <div class="game-col" id="gameCol">
+      <div class="game-panel">
+
+        <!-- Game panel header -->
+        <div class="gp-header">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div class="gp-dot"></div>
+            <span class="gp-title" id="gpTitle">Games</span>
+          </div>
+          <button class="gp-close-btn" onclick="toggleGamePanel()">
+            <i class="ti ti-x" style="font-size:13px;"></i>
+          </button>
+        </div>
+
+        <!-- LOBBY: game picker grid -->
+        <div id="gameLobby">
+          <div class="gp-sub">Pick a game — your partner picks the same to start</div>
+          <div class="gp-waiting-hint" id="gpWaitHint" style="display:none;">
+            <div class="gp-wait-dot"></div>
+            <span id="gpWaitTxt">Waiting for partner to pick the same game…</span>
+          </div>
+          <div class="game-grid" id="gameGrid">
+            <!-- filled by JS -->
+          </div>
+        </div>
+
+        <!-- ACTIVE GAME AREA -->
+        <div id="gameArea" style="display:none;">
+          <div class="ga-header">
+            <div class="ga-game-name" id="gaGameName">—</div>
+            <button class="ga-quit-btn" onclick="quitGame()">
+              <i class="ti ti-door-exit" style="font-size:11px;"></i> Quit game
+            </button>
+          </div>
+          <div class="ga-status" id="gaStatus">—</div>
+          <!-- Game boards render here -->
+          <div id="gaBoardTtt" class="ga-board" style="display:none;"></div>
+          <div id="gaBoardC4"  class="ga-board" style="display:none;"></div>
+          <div id="gaBoardSnl" class="ga-board" style="display:none;"></div>
+          <div class="ga-result" id="gaResult" style="display:none;">
+            <div class="gar-emoji" id="garEmoji">🎉</div>
+            <div class="gar-msg"  id="garMsg">—</div>
+            <button class="ga-rematch-btn" onclick="requestRematch()">
+              <i class="ti ti-refresh"></i> Rematch
+            </button>
+          </div>
+        </div>
+
       </div>
-    </div>
-  </div>
+    </div><!-- /game-col -->
+
+  </div><!-- /chat-root -->
 </div>
 
 <!-- REPORT MODAL -->
@@ -1821,6 +2175,471 @@ setTimeout(()=>{
   initCanvas();
   document.querySelectorAll('#page-home .reveal').forEach((el,i)=>setTimeout(()=>el.classList.add('vis'),60+i*40));
 },80);
+
+// ═══════════════════════════════════════════════════════════════
+//  GAME PANEL SYSTEM
+// ═══════════════════════════════════════════════════════════════
+
+const GAMES = [
+  { id:'ttt',   name:'Tic Tac Toe',  emoji:'⭕', desc:'Classic 3×3',    badge:'2P' },
+  { id:'c4',    name:'Connect Four', emoji:'🔴', desc:'Drop & connect',  badge:'2P' },
+  { id:'snl',   name:'Snake & Ladder',emoji:'🎲',desc:'Roll the dice',   badge:'2P' },
+];
+
+// ── Game panel state ──
+let gamePanelOpen = false;
+let myGameChoice   = null;   // game id I picked
+let activeGame     = null;   // game id currently running
+let gameRole       = null;   // 'p1' or 'p2'  (p1 = room host)
+let myGameTurn     = false;
+let gameOver       = false;
+
+// ── Panel toggle ──────────────────────────────────────────────
+function toggleGamePanel() {
+  gamePanelOpen = !gamePanelOpen;
+  document.getElementById('chat-root-el').classList.toggle('game-open', gamePanelOpen);
+  const btn = document.getElementById('playGameBtn');
+  const txt = document.getElementById('playGameBtnTxt');
+  if (gamePanelOpen) {
+    btn.classList.add('active');
+    txt.textContent = 'Hide Games';
+    if (!activeGame) showGameLobby();
+  } else {
+    btn.classList.remove('active');
+    txt.textContent = 'Play Game';
+  }
+}
+
+// We need an id on chat-root div — add it via JS (avoids touching HTML again)
+document.addEventListener('DOMContentLoaded', () => {
+  const cr = document.querySelector('.chat-root');
+  if (cr) cr.id = 'chat-root-el';
+});
+// Also set it immediately in case DOM is already ready
+(()=>{ const cr = document.querySelector('.chat-root'); if(cr) cr.id='chat-root-el'; })();
+
+// ── Lobby ─────────────────────────────────────────────────────
+function showGameLobby() {
+  document.getElementById('gameLobby').style.display = 'block';
+  document.getElementById('gameArea').style.display  = 'none';
+  document.getElementById('gpTitle').textContent = 'Games';
+  buildGameGrid();
+}
+
+function buildGameGrid() {
+  const grid = document.getElementById('gameGrid');
+  grid.innerHTML = GAMES.map(g => `
+    <div class="game-card ${myGameChoice===g.id?'selected':''}" id="gc-${g.id}" onclick="pickGame('${g.id}')">
+      ${g.badge?`<div class="gc-badge">${g.badge}</div>`:''}
+      <div class="gc-emoji">${g.emoji}</div>
+      <div class="gc-name">${g.name}</div>
+      <div class="gc-desc">${g.desc}</div>
+    </div>`).join('');
+}
+
+function pickGame(gameId) {
+  if (!callActive || !activeRoomId) { showToast('Join a call first'); return; }
+  if (activeGame) { showToast('A game is already running'); return; }
+  myGameChoice = gameId;
+  buildGameGrid(); // re-render to show selected state
+  // Show waiting hint
+  document.getElementById('gpWaitHint').style.display = 'flex';
+  document.getElementById('gpWaitTxt').textContent = 'Waiting for partner to pick ' + GAMES.find(g=>g.id===gameId).name + '…';
+  // Signal peer
+  socket.emit('lab-signal', { roomId: activeRoomId, gamePickSignal: gameId });
+  showToast('Picked ' + GAMES.find(g=>g.id===gameId).name + ' — waiting for partner');
+}
+
+// ── Socket: receive game signals ──────────────────────────────
+// Inject into existing lab-signal handler — we extend it after boot
+const _origLabSignal = socket ? null : null; // socket not yet inited at parse time; we hook below
+
+function handleGameSignals(d) {
+  // Peer picked a game
+  if (d.gamePickSignal) {
+    const theirPick = d.gamePickSignal;
+    if (myGameChoice === theirPick) {
+      // Both picked same game — start!
+      startGame(theirPick);
+    } else {
+      showToast('Partner wants to play ' + (GAMES.find(g=>g.id===theirPick)?.name||theirPick));
+    }
+  }
+  // Peer made a game move
+  if (d.gameMove) {
+    receiveGameMove(d.gameMove);
+  }
+  // Peer quit game
+  if (d.gameQuit) {
+    showToast('Partner quit the game');
+    forceEndGame();
+  }
+  // Peer wants rematch
+  if (d.gameRematch) {
+    showToast('Partner wants a rematch!');
+    startGame(activeGame || d.gameRematch);
+  }
+}
+
+// Hook into existing socket listener — called after initSocket sets up lab-signal
+function hookGameSignals() {
+  if (!socket) return;
+  socket.on('game-signal', handleGameSignals);
+  // Also handle via lab-signal (piggybacking existing channel)
+  const origHandlers = socket._callbacks?.['lab-signal'] || [];
+  socket.on('lab-signal', (d) => {
+    if (d.gamePickSignal || d.gameMove || d.gameQuit || d.gameRematch) {
+      handleGameSignals(d);
+    }
+  });
+}
+
+// ── Start game ────────────────────────────────────────────────
+function startGame(gameId) {
+  activeGame   = gameId;
+  myGameChoice = null;
+  gameOver     = false;
+  // Assign roles: whoever has lower socket.id lexicographically = p1
+  // Both sides run same logic → deterministic role assignment, no negotiation needed
+  gameRole  = socket.id < (peerSidInRoom||'z') ? 'p1' : 'p2';
+  myGameTurn = (gameRole === 'p1'); // p1 always goes first
+
+  // Open panel if not open
+  if (!gamePanelOpen) toggleGamePanel();
+
+  document.getElementById('gameLobby').style.display = 'none';
+  document.getElementById('gameArea').style.display  = 'flex';
+  document.getElementById('gpWaitHint').style.display = 'none';
+  document.getElementById('gaResult').style.display  = 'none';
+  document.getElementById('gaGameName').textContent  = GAMES.find(g=>g.id===gameId)?.name || gameId;
+
+  // Hide all boards, show the right one
+  ['ttt','c4','snl'].forEach(id => {
+    document.getElementById('gaBoard'+id.charAt(0).toUpperCase()+id.slice(1)).style.display = 'none';
+  });
+
+  if (gameId==='ttt')  initTTT();
+  if (gameId==='c4')   initC4();
+  if (gameId==='snl')  initSNL();
+
+  showToast('Game started — ' + (gameRole==='p1'?'You go first':'Partner goes first'));
+}
+
+function quitGame() {
+  if (activeRoomId && socket) {
+    socket.emit('lab-signal', { roomId: activeRoomId, gameQuit: true });
+  }
+  forceEndGame();
+}
+
+function forceEndGame() {
+  activeGame = null; myGameChoice = null; gameOver = false;
+  showGameLobby();
+}
+
+function requestRematch() {
+  const game = activeGame;
+  if (activeRoomId && socket) {
+    socket.emit('lab-signal', { roomId: activeRoomId, gameRematch: game });
+  }
+  startGame(game);
+}
+
+function emitGameMove(moveData) {
+  if (!activeRoomId || !socket) return;
+  socket.emit('lab-signal', { roomId: activeRoomId, gameMove: { game: activeGame, ...moveData } });
+}
+
+function receiveGameMove(moveData) {
+  if (moveData.game !== activeGame) return;
+  if (moveData.game === 'ttt')  applyTTTMove(moveData);
+  if (moveData.game === 'c4')   applyC4Move(moveData);
+  if (moveData.game === 'snl')  applySNLMove(moveData);
+}
+
+function setGameStatus(msg) {
+  document.getElementById('gaStatus').textContent = msg;
+}
+
+function showGameResult(win) {
+  gameOver = true;
+  const el   = document.getElementById('gaResult');
+  const emoji = document.getElementById('garEmoji');
+  const msg   = document.getElementById('garMsg');
+  if (win === 'draw') { emoji.textContent='🤝'; msg.textContent='DRAW — WELL PLAYED'; }
+  else if (win)       { emoji.textContent='🎉'; msg.textContent='YOU WIN!'; }
+  else                { emoji.textContent='💀'; msg.textContent='YOU LOSE'; }
+  el.style.display='flex';
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  GAME 1 — TIC TAC TOE
+// ═══════════════════════════════════════════════════════════════
+let tttBoard = Array(9).fill(null);
+
+function initTTT() {
+  tttBoard = Array(9).fill(null);
+  const board = document.getElementById('gaBoardTtt');
+  board.style.display = 'flex';
+  renderTTT();
+  setGameStatus(myGameTurn ? 'YOUR TURN — ' + (gameRole==='p1'?'X':'O') : "PARTNER'S TURN");
+}
+
+function renderTTT(winCells=[]) {
+  const board = document.getElementById('gaBoardTtt');
+  board.innerHTML = `<div class="ttt-grid">
+    ${tttBoard.map((cell,i) => `
+      <div class="ttt-cell ${cell?'filled':''} ${winCells.includes(i)?'win-cell':''}"
+           onclick="tttClick(${i})">
+        ${cell==='X'?'<span class="ttt-x">✕</span>':cell==='O'?'<span class="ttt-o">◯</span>':''}
+      </div>`).join('')}
+  </div>`;
+}
+
+function tttClick(idx) {
+  if (!myGameTurn || tttBoard[idx] || gameOver) return;
+  const mark = gameRole==='p1' ? 'X' : 'O';
+  tttBoard[idx] = mark;
+  myGameTurn = false;
+  emitGameMove({ idx, mark });
+  const result = checkTTT();
+  renderTTT(result?.cells || []);
+  if (result) { showGameResult(result.winner === mark); return; }
+  if (tttBoard.every(c=>c)) { renderTTT(); showGameResult('draw'); return; }
+  setGameStatus("PARTNER'S TURN");
+}
+
+function applyTTTMove({ idx, mark }) {
+  tttBoard[idx] = mark;
+  myGameTurn = true;
+  const result = checkTTT();
+  renderTTT(result?.cells || []);
+  if (result) { showGameResult(result.winner !== (gameRole==='p1'?'X':'O')); return; }
+  if (tttBoard.every(c=>c)) { renderTTT(); showGameResult('draw'); return; }
+  setGameStatus('YOUR TURN — ' + (gameRole==='p1'?'X':'O'));
+}
+
+function checkTTT() {
+  const wins = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+  for (const [a,b,c] of wins) {
+    if (tttBoard[a] && tttBoard[a]===tttBoard[b] && tttBoard[a]===tttBoard[c]) {
+      return { winner: tttBoard[a], cells:[a,b,c] };
+    }
+  }
+  return null;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  GAME 2 — CONNECT FOUR
+// ═══════════════════════════════════════════════════════════════
+let c4Board = []; // 6 rows × 7 cols, 0=empty 1=p1 2=p2
+const C4_ROWS=6, C4_COLS=7;
+
+function initC4() {
+  c4Board = Array.from({length:C4_ROWS},()=>Array(C4_COLS).fill(0));
+  const board = document.getElementById('gaBoardC4');
+  board.style.display = 'flex';
+  renderC4();
+  setGameStatus(myGameTurn ? 'YOUR TURN — DROP A PIECE' : "PARTNER'S TURN");
+}
+
+function renderC4(winCells=[]) {
+  const board = document.getElementById('gaBoardC4');
+  const myP = gameRole==='p1' ? 1 : 2;
+  const winSet = new Set(winCells.map(([r,c])=>r*C4_COLS+c));
+  board.innerHTML = `<div class="c4-wrap">
+    <div class="c4-col-btns">
+      ${Array.from({length:C4_COLS},(_,col)=>`
+        <button class="c4-col-btn" onclick="c4Drop(${col})" ${!myGameTurn||gameOver?'disabled':''}>▼</button>
+      `).join('')}
+    </div>
+    <div class="c4-grid">
+      ${c4Board.map((row,r)=>row.map((cell,c)=>`
+        <div class="c4-cell ${cell===1?'p1':cell===2?'p2':''} ${winSet.has(r*C4_COLS+c)?'win-cell':''}"></div>
+      `).join('')).join('')}
+    </div>
+    <div style="display:flex;gap:14px;margin-top:6px;font-family:var(--mf);font-size:9px;color:var(--txt3);letter-spacing:1px;">
+      <span><span style="color:var(--a1);">■</span> ${gameRole==='p1'?'You':'Partner'}</span>
+      <span><span style="color:var(--a4);">■</span> ${gameRole==='p2'?'You':'Partner'}</span>
+    </div>
+  </div>`;
+}
+
+function c4Drop(col) {
+  if (!myGameTurn || gameOver) return;
+  const row = c4FindRow(col);
+  if (row < 0) { showToast('Column full'); return; }
+  const myP = gameRole==='p1' ? 1 : 2;
+  c4Board[row][col] = myP;
+  myGameTurn = false;
+  emitGameMove({ col, row, player: myP });
+  const win = checkC4(row, col, myP);
+  renderC4(win||[]);
+  if (win.length) { showGameResult(true); return; }
+  if (c4Board[0].every(c=>c!==0)) { renderC4(); showGameResult('draw'); return; }
+  setGameStatus("PARTNER'S TURN");
+}
+
+function applyC4Move({ col, row, player }) {
+  c4Board[row][col] = player;
+  myGameTurn = true;
+  const win = checkC4(row, col, player);
+  renderC4(win||[]);
+  if (win.length) { showGameResult(false); return; }
+  if (c4Board[0].every(c=>c!==0)) { renderC4(); showGameResult('draw'); return; }
+  setGameStatus('YOUR TURN — DROP A PIECE');
+}
+
+function c4FindRow(col) {
+  for (let r=C4_ROWS-1; r>=0; r--) if (c4Board[r][col]===0) return r;
+  return -1;
+}
+
+function checkC4(row, col, player) {
+  const dirs=[[0,1],[1,0],[1,1],[1,-1]];
+  for (const [dr,dc] of dirs) {
+    let cells=[[row,col]];
+    for (let s of [-1,1]) {
+      let r=row+dr*s, c=col+dc*s;
+      while(r>=0&&r<C4_ROWS&&c>=0&&c<C4_COLS&&c4Board[r][c]===player){
+        cells.push([r,c]); r+=dr*s; c+=dc*s;
+      }
+    }
+    if (cells.length>=4) return cells;
+  }
+  return [];
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  GAME 3 — SNAKE & LADDER
+// ═══════════════════════════════════════════════════════════════
+const SNL_SNAKES  = {16:4,33:20,48:24,62:44,72:52,88:68,97:76};
+const SNL_LADDERS = {3:22,8:30,20:37,28:76,40:59,60:78,85:95};
+let snlPositions = { p1:0, p2:0 }; // 0=start, 100=win
+let snlDice = 1;
+
+function initSNL() {
+  snlPositions = { p1:0, p2:0 };
+  snlDice = 1;
+  const board = document.getElementById('gaBoardSnl');
+  board.style.display = 'flex';
+  renderSNL();
+  setGameStatus(myGameTurn ? 'YOUR TURN — ROLL THE DICE' : "PARTNER'S TURN");
+}
+
+function renderSNL() {
+  const board = document.getElementById('gaBoardSnl');
+  const cells = [];
+  // Board goes bottom-left to top-right, alternating row direction
+  for (let row=9; row>=0; row--) {
+    const rowNums = [];
+    for (let col=0; col<10; col++) rowNums.push(row*10 + col + 1);
+    if ((9-row)%2===1) rowNums.reverse();
+    cells.push(...rowNums);
+  }
+  const myP  = gameRole==='p1'?'p1':'p2';
+  const oppP = gameRole==='p1'?'p2':'p1';
+
+  board.innerHTML = `<div class="snl-wrap">
+    <div class="snl-board">
+      ${cells.map(n => {
+        const isSnake  = SNL_SNAKES[n]  !== undefined;
+        const isLadder = SNL_LADDERS[n] !== undefined;
+        const hasMe    = snlPositions[myP]  === n;
+        const hasOpp   = snlPositions[oppP] === n;
+        const cls = isSnake?'snake':isLadder?'ladder':'';
+        const both = hasMe && hasOpp;
+        return `<div class="snl-cell ${cls} ${both?'both-here':hasMe?'p1-here':hasOpp?'p2-here':''}" title="${isSnake?'🐍→'+SNL_SNAKES[n]:isLadder?'🪜→'+SNL_LADDERS[n]:''}">
+          <span style="font-size:7px;opacity:0.5;">${n}</span>
+        </div>`;
+      }).join('')}
+    </div>
+    <div class="snl-dice-row">
+      <div class="snl-die" id="snlDie">${['','⚀','⚁','⚂','⚃','⚄','⚅'][snlDice]}</div>
+      <button class="snl-roll-btn" id="snlRollBtn" onclick="snlRoll()" ${!myGameTurn||gameOver?'disabled':''}>
+        Roll Dice
+      </button>
+    </div>
+    <div class="snl-legend">
+      <div class="snl-leg-item"><div class="snl-leg-dot" style="background:rgba(255,80,80,0.5);"></div>🐍 Snake</div>
+      <div class="snl-leg-item"><div class="snl-leg-dot" style="background:rgba(61,207,184,0.5);"></div>🪜 Ladder</div>
+      <div class="snl-leg-item">🦊 You &nbsp; 🐺 Partner</div>
+    </div>
+  </div>`;
+}
+
+function snlRoll() {
+  if (!myGameTurn || gameOver) return;
+  const roll = Math.floor(Math.random()*6)+1;
+  snlDice = roll;
+  const myP = gameRole==='p1'?'p1':'p2';
+  let newPos = snlPositions[myP] + roll;
+  if (newPos > 100) newPos = snlPositions[myP]; // can't overshoot 100
+  if (SNL_SNAKES[newPos])  { showToast('🐍 Snake! Go down to '+SNL_SNAKES[newPos]); newPos=SNL_SNAKES[newPos]; }
+  if (SNL_LADDERS[newPos]) { showToast('🪜 Ladder! Climb to '+SNL_LADDERS[newPos]); newPos=SNL_LADDERS[newPos]; }
+  snlPositions[myP] = newPos;
+  myGameTurn = false;
+  emitGameMove({ roll, newPos, player: myP });
+
+  // Animate die
+  const die = document.getElementById('snlDie');
+  if (die) { die.classList.add('rolling'); setTimeout(()=>die.classList.remove('rolling'),500); }
+
+  renderSNL();
+  if (newPos >= 100) { showGameResult(true); return; }
+  setGameStatus("PARTNER'S TURN");
+}
+
+function applySNLMove({ roll, newPos, player }) {
+  snlDice = roll;
+  snlPositions[player] = newPos;
+  myGameTurn = true;
+  renderSNL();
+  if (newPos >= 100) { showGameResult(false); return; }
+  setGameStatus('YOUR TURN — ROLL THE DICE');
+}
+
+// ── Hook game signals after socket is ready ───────────────────
+// Called from initSocket() so we know socket exists
+const _origInitSocket = initSocket;
+initSocket = function() {
+  _origInitSocket();
+  // Hook game-related lab-signal events (deduplicate, socket listener already added)
+};
+
+// Extend the lab-signal handler to process game signals
+// We patch this by intercepting socket events after startMatchmaking sets up the socket
+function patchSocketForGames() {
+  if (!socket) return;
+  // Remove risk of duplicate handlers — use a flag
+  if (socket._gameHooked) return;
+  socket._gameHooked = true;
+  socket.on('lab-signal', (d) => {
+    if (d.gamePickSignal !== undefined) {
+      const theirPick = d.gamePickSignal;
+      if (myGameChoice === theirPick) {
+        startGame(theirPick);
+      } else if (theirPick) {
+        const g = GAMES.find(x=>x.id===theirPick);
+        showToast('Partner wants ' + (g?g.name:theirPick) + ' — pick the same to start!');
+        // Highlight their pick
+        document.querySelectorAll('.game-card').forEach(el=>{
+          el.style.outline = el.id==='gc-'+theirPick ? '1.5px solid rgba(155,111,255,0.45)' : '';
+        });
+      }
+    }
+    if (d.gameMove)    receiveGameMove(d.gameMove);
+    if (d.gameQuit)    { showToast('Partner quit the game'); forceEndGame(); }
+    if (d.gameRematch) { showToast('Partner wants a rematch!'); startGame(d.gameRematch); }
+  });
+}
+
+// Wrap startMatchmaking to also patch socket for games
+const _origStartMatchmaking = startMatchmaking;
+startMatchmaking = async function() {
+  await _origStartMatchmaking();
+  setTimeout(patchSocketForGames, 500);
+};
 </script>
 </body>
 </html>
