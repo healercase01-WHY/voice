@@ -1348,6 +1348,7 @@ let micPreviewActive = false, micPreviewStream = null, micPreviewCtx = null,
 
 // WebRTC state
 let socket, activeRoomId = null, pc = null;
+let myRtcRole = null; // 'A' or 'B' — determines who creates the offer (prevents glare)
 let localStream = null, processedStream = null;
 let audioCtx = null, analyserNode = null, noiseGateNode = null;
 let gainNode = null, sourceNode = null;
@@ -1656,7 +1657,7 @@ function step3() {
 }
 function cancelMatchmaking() {
   if (socket&&activeRoomId) socket.emit('lab-signal',{roomId:activeRoomId,peerDisconnectedSignal:true});
-  activeRoomId=null;
+  activeRoomId=null; myRtcRole=null;
   clearConnectWatchdog();
   const retryBtn = document.getElementById('connRetryBtn');
   if (retryBtn) retryBtn.remove();
@@ -1678,14 +1679,22 @@ function initSocket() {
 
   socket.on('peer-ready', async({roomId,role})=>{
     activeRoomId=roomId;
+    myRtcRole=role;
     setStatus('Match found! Preparing audio...');
     await initAudio(); initPC();
-    setTimeout(async()=>{
-      const offer=await pc.createOffer();
-      offer.sdp=mungeSdp(offer.sdp);
-      await pc.setLocalDescription(offer);
-      socket.emit('lab-signal',{roomId:activeRoomId,offer});
-    },600);
+    // FIX (glare bug): only role 'A' creates the offer. If both peers create
+    // an offer simultaneously, each tries setRemoteDescription(offer) while
+    // already in 'have-local-offer' state — an invalid state transition that
+    // silently fails and leaves ICE stuck at 'new' forever. Role 'B' just
+    // waits — its offer will arrive via lab-signal and it answers normally.
+    if (role === 'A') {
+      setTimeout(async()=>{
+        const offer=await pc.createOffer();
+        offer.sdp=mungeSdp(offer.sdp);
+        await pc.setLocalDescription(offer);
+        socket.emit('lab-signal',{roomId:activeRoomId,offer});
+      },600);
+    }
   });
 
   socket.on('lab-signal', async d=>{
@@ -2263,7 +2272,7 @@ function endCallAndReset() {
   if(dtlnWorklet){try{dtlnWorklet.dispose();}catch(e){} dtlnWorklet=null;}
   if(audioCtx){audioCtx.close();audioCtx=null;}
   document.getElementById('remoteAudio').srcObject=null;
-  activeRoomId=null; localStream=null; processedStream=null; callActive=false;
+  activeRoomId=null; myRtcRole=null; localStream=null; processedStream=null; callActive=false;
   muted=false; speakerBlocked=false; selInt=[]; selMood=null; peerSidInRoom=null;
   // Reset game panel fully (fix: panel stayed open after disconnect)
   resetGamePanelFully();

@@ -304,9 +304,19 @@ function processMatchmake(socketId) {
     const roomId = `room_${bestPeer.id}_${socketId}`;
     doMatch(bestPeer.id, socketId, roomId);
 
+    // FIX: Both peers must receive 'peer-ready' via socket — this is what
+    // triggers initAudio()+initPC() on the frontend. Previously only the
+    // already-waiting peer (A) got this event; the just-arrived peer (B)
+    // only got an HTTP response with no socket event, so their
+    // RTCPeerConnection was NEVER created — leaving ICE state stuck at
+    // 'new' forever once peer A's offer arrived with nothing to receive it.
     const sockA = io.sockets.sockets.get(bestPeer.id);
+    const sockB = io.sockets.sockets.get(socketId);
     if (sockA) sockA.emit('peer-ready', { roomId, role: 'A' });
+    if (sockB) sockB.emit('peer-ready', { roomId, role: 'B' });
 
+    // HTTP response is now informational only — actual setup happens via the
+    // socket events above for BOTH peers, symmetrically.
     return { action: 'matched', roomId, role: 'B' };
 }
 
