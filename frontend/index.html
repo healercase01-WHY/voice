@@ -457,6 +457,7 @@ html{background:var(--bg);color:var(--txt);font-family:var(--gf);overflow-x:hidd
   flex: 0 0 100%;
   width: 100%;
   overflow-y: auto;
+  position: relative;
   transition: flex-basis 0.42s cubic-bezier(0.4,0,0.2,1), width 0.42s cubic-bezier(0.4,0,0.2,1);
   border-right: 1px solid var(--line);
 }
@@ -630,6 +631,76 @@ html{background:var(--bg);color:var(--txt);font-family:var(--gf);overflow-x:hidd
   cursor: pointer; transition: all 0.22s;
 }
 .ga-rematch-btn:hover { background: rgba(155,111,255,0.22); border-color: rgba(155,111,255,0.55); }
+
+/* ── FIX 5: game card fill bar + peer-wants state ── */
+.gc-fill-bar {
+  position: absolute; bottom: 0; left: 0; right: 0; height: 3px;
+  background: var(--line); border-radius: 0 0 var(--r-md) var(--r-md); overflow: hidden;
+}
+.gc-fill-inner {
+  height: 100%; background: var(--a2);
+  transition: width 0.4s cubic-bezier(0.4,0,0.2,1);
+  border-radius: 0 0 var(--r-md) var(--r-md);
+}
+.game-card.matched .gc-fill-inner { background: var(--a3); }
+.game-card.peer-wants {
+  border-color: rgba(155,111,255,0.25);
+  background: rgba(155,111,255,0.04);
+}
+.game-card.matched {
+  border-color: rgba(61,207,184,0.45);
+  background: rgba(61,207,184,0.06);
+  animation: matchPulse 0.6s ease;
+}
+@keyframes matchPulse { 0%,100%{transform:scale(1);}50%{transform:scale(1.03);} }
+.gc-peer-tag {
+  position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%);
+  font-family: var(--mf); font-size: 8px; letter-spacing: 0.8px;
+  color: var(--a2); white-space: nowrap; text-transform: uppercase;
+}
+.gc-peer-tag.match { color: var(--a3); font-weight: 700; }
+
+/* ── FIX 4: notification badge on Play Game button ── */
+.play-game-btn { position: relative; }
+.pgb-badge {
+  position: absolute; top: -5px; right: -5px;
+  width: 14px; height: 14px; border-radius: 50%;
+  background: var(--a4); color: #fff; font-size: 8px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--mf); animation: badgePop 0.3s cubic-bezier(0.2,0,0,1.5);
+}
+@keyframes badgePop { 0%{transform:scale(0);}100%{transform:scale(1);} }
+.play-game-btn.has-notif { border-color: rgba(255,107,157,0.5); }
+
+/* ── FIX 6: Play Game btn — right-middle of call col ── */
+/* Already in status bar, but now we make it stand out more */
+.play-game-btn {
+  box-shadow: 0 2px 12px rgba(155,111,255,0.15);
+}
+/* Floating version — anchored to chat-root, right edge tracks call-col's width */
+.play-game-float {
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  transform: translate(-100%, -50%);
+  z-index: 20;
+  border-radius: 10px;
+  padding: 12px 10px;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 8px;
+  box-shadow: 0 2px 18px rgba(0,0,0,0.25), 0 2px 12px rgba(155,111,255,0.2);
+  background: var(--bg2);
+  transition: left 0.42s cubic-bezier(0.4,0,0.2,1), transform 0.42s cubic-bezier(0.4,0,0.2,1);
+}
+.play-game-float span {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  transform: rotate(180deg);
+  letter-spacing: 1.5px;
+}
+/* Hide once panel is open — game-col takes over, no need for floating btn */
+.chat-root.game-open .play-game-float { display: none; }
 
 /* ── TIC TAC TOE ── */
 .ttt-grid {
@@ -973,14 +1044,7 @@ html{background:var(--bg);color:var(--txt);font-family:var(--gf);overflow-x:hidd
               Strong
             </div>
           </div>
-          <div style="display:flex;align-items:center;gap:10px;">
-            <div class="ctimer" id="chatTimer">00:00</div>
-            <!-- PLAY GAME BUTTON -->
-            <button class="play-game-btn" id="playGameBtn" onclick="toggleGamePanel()">
-              <i class="ti ti-device-gamepad-2" style="font-size:14px;"></i>
-              <span id="playGameBtnTxt">Play Game</span>
-            </button>
-          </div>
+          <div class="ctimer" id="chatTimer">00:00</div>
         </div>
 
         <div class="users-row">
@@ -1097,6 +1161,12 @@ html{background:var(--bg);color:var(--txt);font-family:var(--gf);overflow-x:hidd
         </div>
       </div><!-- /chat-pg -->
     </div><!-- /call-col -->
+
+    <!-- FIX 6: Floating Play Game button — right-middle, follows call-col edge -->
+    <button class="play-game-btn play-game-float" id="playGameBtn" onclick="toggleGamePanel()">
+      <i class="ti ti-device-gamepad-2" style="font-size:15px;"></i>
+      <span id="playGameBtnTxt">Play Game</span>
+    </button>
 
     <!-- RIGHT: Game Panel (slides in) -->
     <div class="game-col" id="gameCol">
@@ -1643,11 +1713,14 @@ async function startMatchmaking() {
         body:JSON.stringify({socketId:socket.id})
       });
       const data=await res.json();
-      if (data.action==='wait'){activeRoomId=data.roomId;setStatus('Waiting for a match...');}
-      else {activeRoomId=data.roomId;setStatus('Match found! Preparing audio...');await initAudio();initPC();}
+      // Only wait — peer-ready event handles the actual connection setup
+      if (data.action==='wait') { activeRoomId=data.roomId; setStatus('Waiting for a match...'); }
+      else { activeRoomId=data.roomId; setStatus('Match found! Connecting...'); }
     } catch(err){setStatus('Retrying...');setTimeout(doPost,2000);}
   };
   if (socket.connected) await doPost(); else socket.once('connect',doPost);
+  // Hook game signals now that socket exists
+  patchSocketForGames();
 }
 
 // ── DTLN Neural Noise Suppression (@workadventure/noise-suppression) ──────────
@@ -2103,7 +2176,9 @@ function endCallAndReset() {
   if(audioCtx){audioCtx.close();audioCtx=null;}
   document.getElementById('remoteAudio').srcObject=null;
   activeRoomId=null; localStream=null; processedStream=null; callActive=false;
-  muted=false; speakerBlocked=false; selInt=[]; selMood=null;
+  muted=false; speakerBlocked=false; selInt=[]; selMood=null; peerSidInRoom=null;
+  // Reset game panel fully (fix: panel stayed open after disconnect)
+  resetGamePanelFully();
   // Reset speaker button
   document.getElementById('speakerIc').className='ti ti-volume';
   document.getElementById('speakerIc').style.color='rgba(61,207,184,0.9)';
@@ -2177,198 +2252,277 @@ setTimeout(()=>{
 },80);
 
 // ═══════════════════════════════════════════════════════════════
-//  GAME PANEL SYSTEM
+//  GAME PANEL SYSTEM  — v2 (all 6 issues fixed)
 // ═══════════════════════════════════════════════════════════════
 
 const GAMES = [
-  { id:'ttt',   name:'Tic Tac Toe',  emoji:'⭕', desc:'Classic 3×3',    badge:'2P' },
-  { id:'c4',    name:'Connect Four', emoji:'🔴', desc:'Drop & connect',  badge:'2P' },
-  { id:'snl',   name:'Snake & Ladder',emoji:'🎲',desc:'Roll the dice',   badge:'2P' },
+  { id:'ttt', name:'Tic Tac Toe',   emoji:'⭕', desc:'Classic 3×3'   },
+  { id:'c4',  name:'Connect Four',  emoji:'🔴', desc:'Drop & connect' },
+  { id:'snl', name:'Snake & Ladder',emoji:'🎲', desc:'Roll the dice'  },
 ];
 
-// ── Game panel state ──
-let gamePanelOpen = false;
-let myGameChoice   = null;   // game id I picked
-let activeGame     = null;   // game id currently running
-let gameRole       = null;   // 'p1' or 'p2'  (p1 = room host)
+// ── state ──────────────────────────────────────────────────────
+let gamePanelOpen  = false;
+let myGameChoice   = null;   // gameId I picked
+let peerGameChoice = null;   // gameId peer picked (received via socket)
+let activeGame     = null;   // gameId running right now
+let gameRole       = null;   // 'p1' | 'p2'
 let myGameTurn     = false;
 let gameOver       = false;
+let gameSocketHooked = false; // prevent duplicate listeners
+
+// ── FIX 3 + 6: Full reset, called from endCallAndReset ────────
+function resetGamePanelFully() {
+  activeGame = null; myGameChoice = null; peerGameChoice = null;
+  gameOver = false; gameRole = null; myGameTurn = false;
+  // Close panel silently without toggle side-effects
+  gamePanelOpen = false;
+  const root = document.getElementById('chat-root-el');
+  if (root) root.classList.remove('game-open');
+  const btn = document.getElementById('playGameBtn');
+  const txt = document.getElementById('playGameBtnTxt');
+  if (btn) btn.classList.remove('active');
+  if (txt) txt.textContent = 'Play Game';
+  // Reset notification badge
+  updateGameBtnBadge(false);
+}
+
+// ── FIX 6: Play Game button — floating right-middle pill ──────
+// (position handled in CSS: .play-game-btn is now fixed to call-col right edge)
 
 // ── Panel toggle ──────────────────────────────────────────────
 function toggleGamePanel() {
   gamePanelOpen = !gamePanelOpen;
-  document.getElementById('chat-root-el').classList.toggle('game-open', gamePanelOpen);
+  const root = document.getElementById('chat-root-el');
+  if (!root) return;
+  root.classList.toggle('game-open', gamePanelOpen);
   const btn = document.getElementById('playGameBtn');
   const txt = document.getElementById('playGameBtnTxt');
   if (gamePanelOpen) {
-    btn.classList.add('active');
-    txt.textContent = 'Hide Games';
+    if (btn) btn.classList.add('active');
+    if (txt) txt.textContent = 'Hide Games';
+    updateGameBtnBadge(false); // clear badge once opened
     if (!activeGame) showGameLobby();
   } else {
-    btn.classList.remove('active');
-    txt.textContent = 'Play Game';
+    if (btn) btn.classList.remove('active');
+    if (txt) txt.textContent = 'Play Game';
   }
 }
 
-// We need an id on chat-root div — add it via JS (avoids touching HTML again)
-document.addEventListener('DOMContentLoaded', () => {
-  const cr = document.querySelector('.chat-root');
-  if (cr) cr.id = 'chat-root-el';
-});
-// Also set it immediately in case DOM is already ready
-(()=>{ const cr = document.querySelector('.chat-root'); if(cr) cr.id='chat-root-el'; })();
+// Set id on .chat-root immediately + after DOM ready
+(()=>{ const cr=document.querySelector('.chat-root'); if(cr) cr.id='chat-root-el'; })();
+document.addEventListener('DOMContentLoaded',()=>{ const cr=document.querySelector('.chat-root'); if(cr) cr.id='chat-root-el'; });
+
+// ── FIX 4: Notification badge on Play Game button ─────────────
+function updateGameBtnBadge(show, gameName) {
+  const btn = document.getElementById('playGameBtn');
+  if (!btn) return;
+  let badge = btn.querySelector('.pgb-badge');
+  if (show) {
+    if (!badge) { badge=document.createElement('span'); badge.className='pgb-badge'; btn.appendChild(badge); }
+    badge.textContent = '!';
+    btn.classList.add('has-notif');
+  } else {
+    if (badge) badge.remove();
+    btn.classList.remove('has-notif');
+  }
+}
 
 // ── Lobby ─────────────────────────────────────────────────────
 function showGameLobby() {
-  document.getElementById('gameLobby').style.display = 'block';
-  document.getElementById('gameArea').style.display  = 'none';
-  document.getElementById('gpTitle').textContent = 'Games';
+  const lobby = document.getElementById('gameLobby');
+  const area  = document.getElementById('gameArea');
+  if (lobby) lobby.style.display = 'block';
+  if (area)  area.style.display  = 'none';
+  const title = document.getElementById('gpTitle');
+  if (title) title.textContent = 'Games';
   buildGameGrid();
 }
 
+// ── FIX 5: Half-filled = peer picked, full = both picked ──────
 function buildGameGrid() {
   const grid = document.getElementById('gameGrid');
-  grid.innerHTML = GAMES.map(g => `
-    <div class="game-card ${myGameChoice===g.id?'selected':''}" id="gc-${g.id}" onclick="pickGame('${g.id}')">
-      ${g.badge?`<div class="gc-badge">${g.badge}</div>`:''}
+  if (!grid) return;
+  grid.innerHTML = GAMES.map(g => {
+    const iMine  = myGameChoice   === g.id;
+    const iPeer  = peerGameChoice === g.id;
+    const iMatch = iMine && iPeer; // both picked = ready to launch
+    let stateClass = '';
+    if (iMatch) stateClass = 'selected matched';
+    else if (iMine)  stateClass = 'selected';
+    else if (iPeer)  stateClass = 'peer-wants';
+    return `
+    <div class="game-card ${stateClass}" id="gc-${g.id}" onclick="pickGame('${g.id}')">
+      <div class="gc-fill-bar">
+        <div class="gc-fill-inner" style="width:${iMatch?'100':iPeer||iMine?'50':'0'}%"></div>
+      </div>
       <div class="gc-emoji">${g.emoji}</div>
       <div class="gc-name">${g.name}</div>
       <div class="gc-desc">${g.desc}</div>
-    </div>`).join('');
+      ${iPeer&&!iMine ? '<div class="gc-peer-tag">Partner wants this</div>' : ''}
+      ${iMatch        ? '<div class="gc-peer-tag match">Tap to launch!</div>' : ''}
+    </div>`;
+  }).join('');
 }
 
+// ── FIX 2 + 4 + 5: Pick a game ────────────────────────────────
 function pickGame(gameId) {
   if (!callActive || !activeRoomId) { showToast('Join a call first'); return; }
   if (activeGame) { showToast('A game is already running'); return; }
+
+  // If both picked same already — start immediately
+  if (peerGameChoice === gameId) {
+    myGameChoice = gameId;
+    startGame(gameId);
+    return;
+  }
+
   myGameChoice = gameId;
-  buildGameGrid(); // re-render to show selected state
+  buildGameGrid();
+
   // Show waiting hint
-  document.getElementById('gpWaitHint').style.display = 'flex';
-  document.getElementById('gpWaitTxt').textContent = 'Waiting for partner to pick ' + GAMES.find(g=>g.id===gameId).name + '…';
+  const hint = document.getElementById('gpWaitHint');
+  const htxt = document.getElementById('gpWaitTxt');
+  if (hint) hint.style.display = 'flex';
+  if (htxt) htxt.textContent = 'Waiting for partner to pick ' + GAMES.find(g=>g.id===gameId).name + '…';
+
   // Signal peer
   socket.emit('lab-signal', { roomId: activeRoomId, gamePickSignal: gameId });
   showToast('Picked ' + GAMES.find(g=>g.id===gameId).name + ' — waiting for partner');
 }
 
-// ── Socket: receive game signals ──────────────────────────────
-// Inject into existing lab-signal handler — we extend it after boot
-const _origLabSignal = socket ? null : null; // socket not yet inited at parse time; we hook below
+// ── FIX 1: Single socket hook, called once from startMatchmaking
+function patchSocketForGames() {
+  if (!socket || gameSocketHooked) return;
+  gameSocketHooked = true;
 
-function handleGameSignals(d) {
-  // Peer picked a game
-  if (d.gamePickSignal) {
-    const theirPick = d.gamePickSignal;
-    if (myGameChoice === theirPick) {
-      // Both picked same game — start!
-      startGame(theirPick);
-    } else {
-      showToast('Partner wants to play ' + (GAMES.find(g=>g.id===theirPick)?.name||theirPick));
+  socket.on('lab-signal', d => {
+    // ── Peer picked a game ──
+    if (d.gamePickSignal !== undefined) {
+      const theirPick = d.gamePickSignal;
+      peerGameChoice = theirPick;
+
+      const g = GAMES.find(x=>x.id===theirPick);
+      const gName = g ? g.name : theirPick;
+
+      if (myGameChoice === theirPick) {
+        // FIX 2: Both agreed — start for BOTH
+        startGame(theirPick);
+      } else {
+        // FIX 4: Notify via button badge + toast even if panel closed
+        if (!gamePanelOpen) updateGameBtnBadge(true, gName);
+        showToast('🎮 Partner wants ' + gName + ' — open Games to match!');
+        // FIX 5: Highlight their pick in grid (if lobby is visible)
+        buildGameGrid();
+        const hint = document.getElementById('gpWaitHint');
+        const htxt = document.getElementById('gpWaitTxt');
+        if (hint) hint.style.display = 'flex';
+        if (htxt) htxt.textContent = 'Partner picked ' + gName + ' — pick the same to start!';
+      }
     }
-  }
-  // Peer made a game move
-  if (d.gameMove) {
-    receiveGameMove(d.gameMove);
-  }
-  // Peer quit game
-  if (d.gameQuit) {
-    showToast('Partner quit the game');
-    forceEndGame();
-  }
-  // Peer wants rematch
-  if (d.gameRematch) {
-    showToast('Partner wants a rematch!');
-    startGame(activeGame || d.gameRematch);
-  }
-}
 
-// Hook into existing socket listener — called after initSocket sets up lab-signal
-function hookGameSignals() {
-  if (!socket) return;
-  socket.on('game-signal', handleGameSignals);
-  // Also handle via lab-signal (piggybacking existing channel)
-  const origHandlers = socket._callbacks?.['lab-signal'] || [];
-  socket.on('lab-signal', (d) => {
-    if (d.gamePickSignal || d.gameMove || d.gameQuit || d.gameRematch) {
-      handleGameSignals(d);
+    // ── Peer move ──
+    if (d.gameMove) receiveGameMove(d.gameMove);
+
+    // ── Peer quit ──
+    if (d.gameQuit) {
+      showToast('Partner quit the game');
+      forceEndGame();
+    }
+
+    // ── Peer rematch ──
+    if (d.gameRematch) {
+      showToast('🔁 Partner wants a rematch!');
+      startGame(d.gameRematch);
     }
   });
 }
 
-// ── Start game ────────────────────────────────────────────────
+// ── FIX 2: startGame — never double-open panel ────────────────
 function startGame(gameId) {
-  activeGame   = gameId;
-  myGameChoice = null;
-  gameOver     = false;
-  // Assign roles: whoever has lower socket.id lexicographically = p1
-  // Both sides run same logic → deterministic role assignment, no negotiation needed
-  gameRole  = socket.id < (peerSidInRoom||'z') ? 'p1' : 'p2';
-  myGameTurn = (gameRole === 'p1'); // p1 always goes first
+  activeGame     = gameId;
+  myGameChoice   = null;
+  peerGameChoice = null;
+  gameOver       = false;
 
-  // Open panel if not open
-  if (!gamePanelOpen) toggleGamePanel();
+  // Deterministic role: lexicographic socket.id comparison — same logic both sides
+  gameRole   = (socket.id < (peerSidInRoom||'\uFFFF')) ? 'p1' : 'p2';
+  myGameTurn = (gameRole === 'p1');
 
-  document.getElementById('gameLobby').style.display = 'none';
-  document.getElementById('gameArea').style.display  = 'flex';
-  document.getElementById('gpWaitHint').style.display = 'none';
-  document.getElementById('gaResult').style.display  = 'none';
-  document.getElementById('gaGameName').textContent  = GAMES.find(g=>g.id===gameId)?.name || gameId;
+  // Open panel without toggling if already open
+  if (!gamePanelOpen) {
+    gamePanelOpen = true;
+    const root = document.getElementById('chat-root-el');
+    if (root) root.classList.add('game-open');
+    const btn = document.getElementById('playGameBtn');
+    const txt = document.getElementById('playGameBtnTxt');
+    if (btn) btn.classList.add('active');
+    if (txt) txt.textContent = 'Hide Games';
+  }
 
-  // Hide all boards, show the right one
-  ['ttt','c4','snl'].forEach(id => {
-    document.getElementById('gaBoard'+id.charAt(0).toUpperCase()+id.slice(1)).style.display = 'none';
-  });
+  const lobby  = document.getElementById('gameLobby');
+  const area   = document.getElementById('gameArea');
+  const result = document.getElementById('gaResult');
+  const hint   = document.getElementById('gpWaitHint');
+  const gname  = document.getElementById('gaGameName');
+  if (lobby)  lobby.style.display  = 'none';
+  if (area)   area.style.display   = 'flex';
+  if (result) result.style.display = 'none';
+  if (hint)   hint.style.display   = 'none';
+  if (gname)  gname.textContent    = GAMES.find(g=>g.id===gameId)?.name || gameId;
 
-  if (gameId==='ttt')  initTTT();
-  if (gameId==='c4')   initC4();
-  if (gameId==='snl')  initSNL();
+  // Hide all boards
+  document.querySelectorAll('.ga-board').forEach(b => b.style.display='none');
 
-  showToast('Game started — ' + (gameRole==='p1'?'You go first':'Partner goes first'));
+  if (gameId==='ttt') initTTT();
+  if (gameId==='c4')  initC4();
+  if (gameId==='snl') initSNL();
+
+  showToast('Game on — ' + (myGameTurn?'you go first':'partner goes first'));
 }
 
 function quitGame() {
-  if (activeRoomId && socket) {
-    socket.emit('lab-signal', { roomId: activeRoomId, gameQuit: true });
-  }
+  if (activeRoomId && socket) socket.emit('lab-signal',{roomId:activeRoomId, gameQuit:true});
   forceEndGame();
 }
 
 function forceEndGame() {
-  activeGame = null; myGameChoice = null; gameOver = false;
+  activeGame=null; myGameChoice=null; peerGameChoice=null; gameOver=false;
   showGameLobby();
 }
 
 function requestRematch() {
   const game = activeGame;
-  if (activeRoomId && socket) {
-    socket.emit('lab-signal', { roomId: activeRoomId, gameRematch: game });
-  }
+  if (activeRoomId && socket) socket.emit('lab-signal',{roomId:activeRoomId, gameRematch:game});
   startGame(game);
 }
 
 function emitGameMove(moveData) {
-  if (!activeRoomId || !socket) return;
-  socket.emit('lab-signal', { roomId: activeRoomId, gameMove: { game: activeGame, ...moveData } });
+  if (!activeRoomId||!socket) return;
+  socket.emit('lab-signal',{roomId:activeRoomId, gameMove:{game:activeGame,...moveData}});
 }
 
 function receiveGameMove(moveData) {
   if (moveData.game !== activeGame) return;
-  if (moveData.game === 'ttt')  applyTTTMove(moveData);
-  if (moveData.game === 'c4')   applyC4Move(moveData);
-  if (moveData.game === 'snl')  applySNLMove(moveData);
+  if (moveData.game==='ttt') applyTTTMove(moveData);
+  if (moveData.game==='c4')  applyC4Move(moveData);
+  if (moveData.game==='snl') applySNLMove(moveData);
 }
 
 function setGameStatus(msg) {
-  document.getElementById('gaStatus').textContent = msg;
+  const el = document.getElementById('gaStatus');
+  if (el) el.textContent = msg;
 }
 
 function showGameResult(win) {
   gameOver = true;
-  const el   = document.getElementById('gaResult');
+  const el    = document.getElementById('gaResult');
   const emoji = document.getElementById('garEmoji');
   const msg   = document.getElementById('garMsg');
-  if (win === 'draw') { emoji.textContent='🤝'; msg.textContent='DRAW — WELL PLAYED'; }
-  else if (win)       { emoji.textContent='🎉'; msg.textContent='YOU WIN!'; }
-  else                { emoji.textContent='💀'; msg.textContent='YOU LOSE'; }
+  if (!el) return;
+  if (win==='draw') { emoji.textContent='🤝'; msg.textContent='DRAW — WELL PLAYED'; }
+  else if (win)     { emoji.textContent='🎉'; msg.textContent='YOU WIN!'; }
+  else              { emoji.textContent='💀'; msg.textContent='YOU LOSE'; }
   el.style.display='flex';
 }
 
@@ -2380,51 +2534,52 @@ let tttBoard = Array(9).fill(null);
 function initTTT() {
   tttBoard = Array(9).fill(null);
   const board = document.getElementById('gaBoardTtt');
-  board.style.display = 'flex';
+  if (board) board.style.display='flex';
   renderTTT();
-  setGameStatus(myGameTurn ? 'YOUR TURN — ' + (gameRole==='p1'?'X':'O') : "PARTNER'S TURN");
+  setGameStatus(myGameTurn?'YOUR TURN  ·  '+(gameRole==='p1'?'✕':'◯'):"PARTNER'S TURN");
 }
 
 function renderTTT(winCells=[]) {
   const board = document.getElementById('gaBoardTtt');
-  board.innerHTML = `<div class="ttt-grid">
-    ${tttBoard.map((cell,i) => `
+  if (!board) return;
+  board.innerHTML = `<div class="ttt-grid">${
+    tttBoard.map((cell,i)=>`
       <div class="ttt-cell ${cell?'filled':''} ${winCells.includes(i)?'win-cell':''}"
            onclick="tttClick(${i})">
         ${cell==='X'?'<span class="ttt-x">✕</span>':cell==='O'?'<span class="ttt-o">◯</span>':''}
-      </div>`).join('')}
-  </div>`;
+      </div>`).join('')
+  }</div>`;
 }
 
 function tttClick(idx) {
-  if (!myGameTurn || tttBoard[idx] || gameOver) return;
-  const mark = gameRole==='p1' ? 'X' : 'O';
-  tttBoard[idx] = mark;
-  myGameTurn = false;
-  emitGameMove({ idx, mark });
-  const result = checkTTT();
-  renderTTT(result?.cells || []);
-  if (result) { showGameResult(result.winner === mark); return; }
+  if (!myGameTurn||tttBoard[idx]||gameOver) return;
+  const mark = gameRole==='p1'?'X':'O';
+  tttBoard[idx]=mark;
+  myGameTurn=false;
+  emitGameMove({idx,mark});
+  const result=checkTTT();
+  renderTTT(result?.cells||[]);
+  if (result) { showGameResult(result.winner===mark); return; }
   if (tttBoard.every(c=>c)) { renderTTT(); showGameResult('draw'); return; }
   setGameStatus("PARTNER'S TURN");
 }
 
-function applyTTTMove({ idx, mark }) {
-  tttBoard[idx] = mark;
-  myGameTurn = true;
-  const result = checkTTT();
-  renderTTT(result?.cells || []);
-  if (result) { showGameResult(result.winner !== (gameRole==='p1'?'X':'O')); return; }
+function applyTTTMove({idx,mark}) {
+  tttBoard[idx]=mark;
+  myGameTurn=true;
+  const result=checkTTT();
+  renderTTT(result?.cells||[]);
+  const myMark=gameRole==='p1'?'X':'O';
+  if (result) { showGameResult(result.winner!==myMark); return; }
   if (tttBoard.every(c=>c)) { renderTTT(); showGameResult('draw'); return; }
-  setGameStatus('YOUR TURN — ' + (gameRole==='p1'?'X':'O'));
+  setGameStatus('YOUR TURN  ·  '+myMark);
 }
 
 function checkTTT() {
-  const wins = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+  const wins=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
   for (const [a,b,c] of wins) {
-    if (tttBoard[a] && tttBoard[a]===tttBoard[b] && tttBoard[a]===tttBoard[c]) {
-      return { winner: tttBoard[a], cells:[a,b,c] };
-    }
+    if (tttBoard[a]&&tttBoard[a]===tttBoard[b]&&tttBoard[a]===tttBoard[c])
+      return {winner:tttBoard[a],cells:[a,b,c]};
   }
   return null;
 }
@@ -2432,33 +2587,32 @@ function checkTTT() {
 // ═══════════════════════════════════════════════════════════════
 //  GAME 2 — CONNECT FOUR
 // ═══════════════════════════════════════════════════════════════
-let c4Board = []; // 6 rows × 7 cols, 0=empty 1=p1 2=p2
-const C4_ROWS=6, C4_COLS=7;
+let c4Board=[];
+const C4_ROWS=6,C4_COLS=7;
 
 function initC4() {
-  c4Board = Array.from({length:C4_ROWS},()=>Array(C4_COLS).fill(0));
-  const board = document.getElementById('gaBoardC4');
-  board.style.display = 'flex';
+  c4Board=Array.from({length:C4_ROWS},()=>Array(C4_COLS).fill(0));
+  const board=document.getElementById('gaBoardC4');
+  if (board) board.style.display='flex';
   renderC4();
-  setGameStatus(myGameTurn ? 'YOUR TURN — DROP A PIECE' : "PARTNER'S TURN");
+  setGameStatus(myGameTurn?'YOUR TURN — DROP A PIECE':"PARTNER'S TURN");
 }
 
 function renderC4(winCells=[]) {
-  const board = document.getElementById('gaBoardC4');
-  const myP = gameRole==='p1' ? 1 : 2;
-  const winSet = new Set(winCells.map(([r,c])=>r*C4_COLS+c));
-  board.innerHTML = `<div class="c4-wrap">
-    <div class="c4-col-btns">
-      ${Array.from({length:C4_COLS},(_,col)=>`
-        <button class="c4-col-btn" onclick="c4Drop(${col})" ${!myGameTurn||gameOver?'disabled':''}>▼</button>
-      `).join('')}
-    </div>
-    <div class="c4-grid">
-      ${c4Board.map((row,r)=>row.map((cell,c)=>`
-        <div class="c4-cell ${cell===1?'p1':cell===2?'p2':''} ${winSet.has(r*C4_COLS+c)?'win-cell':''}"></div>
-      `).join('')).join('')}
-    </div>
-    <div style="display:flex;gap:14px;margin-top:6px;font-family:var(--mf);font-size:9px;color:var(--txt3);letter-spacing:1px;">
+  const board=document.getElementById('gaBoardC4');
+  if (!board) return;
+  const winSet=new Set(winCells.map(([r,c])=>r*C4_COLS+c));
+  board.innerHTML=`<div class="c4-wrap">
+    <div class="c4-col-btns">${
+      Array.from({length:C4_COLS},(_,col)=>`
+        <button class="c4-col-btn" onclick="c4Drop(${col})" ${!myGameTurn||gameOver?'disabled':''}>▼</button>`).join('')
+    }</div>
+    <div class="c4-grid">${
+      c4Board.map((row,r)=>row.map((cell,c)=>`
+        <div class="c4-cell ${cell===1?'p1':cell===2?'p2':''} ${winSet.has(r*C4_COLS+c)?'win-cell':''}"></div>`
+      ).join('')).join('')
+    }</div>
+    <div style="display:flex;gap:14px;margin-top:6px;font-family:var(--mf);font-size:9px;color:var(--txt3);">
       <span><span style="color:var(--a1);">■</span> ${gameRole==='p1'?'You':'Partner'}</span>
       <span><span style="color:var(--a4);">■</span> ${gameRole==='p2'?'You':'Partner'}</span>
     </div>
@@ -2466,46 +2620,38 @@ function renderC4(winCells=[]) {
 }
 
 function c4Drop(col) {
-  if (!myGameTurn || gameOver) return;
-  const row = c4FindRow(col);
-  if (row < 0) { showToast('Column full'); return; }
-  const myP = gameRole==='p1' ? 1 : 2;
-  c4Board[row][col] = myP;
-  myGameTurn = false;
-  emitGameMove({ col, row, player: myP });
-  const win = checkC4(row, col, myP);
-  renderC4(win||[]);
-  if (win.length) { showGameResult(true); return; }
-  if (c4Board[0].every(c=>c!==0)) { renderC4(); showGameResult('draw'); return; }
+  if (!myGameTurn||gameOver) return;
+  const row=c4FindRow(col); if (row<0){showToast('Column full');return;}
+  const myP=gameRole==='p1'?1:2;
+  c4Board[row][col]=myP; myGameTurn=false;
+  emitGameMove({col,row,player:myP});
+  const win=checkC4(row,col,myP); renderC4(win||[]);
+  if (win.length){showGameResult(true);return;}
+  if (c4Board[0].every(c=>c!==0)){renderC4();showGameResult('draw');return;}
   setGameStatus("PARTNER'S TURN");
 }
 
-function applyC4Move({ col, row, player }) {
-  c4Board[row][col] = player;
-  myGameTurn = true;
-  const win = checkC4(row, col, player);
-  renderC4(win||[]);
-  if (win.length) { showGameResult(false); return; }
-  if (c4Board[0].every(c=>c!==0)) { renderC4(); showGameResult('draw'); return; }
+function applyC4Move({col,row,player}) {
+  c4Board[row][col]=player; myGameTurn=true;
+  const win=checkC4(row,col,player); renderC4(win||[]);
+  if (win.length){showGameResult(false);return;}
+  if (c4Board[0].every(c=>c!==0)){renderC4();showGameResult('draw');return;}
   setGameStatus('YOUR TURN — DROP A PIECE');
 }
 
-function c4FindRow(col) {
-  for (let r=C4_ROWS-1; r>=0; r--) if (c4Board[r][col]===0) return r;
-  return -1;
+function c4FindRow(col){
+  for(let r=C4_ROWS-1;r>=0;r--) if(c4Board[r][col]===0) return r; return -1;
 }
 
-function checkC4(row, col, player) {
+function checkC4(row,col,player){
   const dirs=[[0,1],[1,0],[1,1],[1,-1]];
-  for (const [dr,dc] of dirs) {
+  for(const [dr,dc] of dirs){
     let cells=[[row,col]];
-    for (let s of [-1,1]) {
-      let r=row+dr*s, c=col+dc*s;
-      while(r>=0&&r<C4_ROWS&&c>=0&&c<C4_COLS&&c4Board[r][c]===player){
-        cells.push([r,c]); r+=dr*s; c+=dc*s;
-      }
+    for(const s of [-1,1]){
+      let r=row+dr*s,c=col+dc*s;
+      while(r>=0&&r<C4_ROWS&&c>=0&&c<C4_COLS&&c4Board[r][c]===player){cells.push([r,c]);r+=dr*s;c+=dc*s;}
     }
-    if (cells.length>=4) return cells;
+    if(cells.length>=4) return cells;
   }
   return [];
 }
@@ -2515,131 +2661,70 @@ function checkC4(row, col, player) {
 // ═══════════════════════════════════════════════════════════════
 const SNL_SNAKES  = {16:4,33:20,48:24,62:44,72:52,88:68,97:76};
 const SNL_LADDERS = {3:22,8:30,20:37,28:76,40:59,60:78,85:95};
-let snlPositions = { p1:0, p2:0 }; // 0=start, 100=win
-let snlDice = 1;
+let snlPos={p1:0,p2:0}, snlDice=1;
 
-function initSNL() {
-  snlPositions = { p1:0, p2:0 };
-  snlDice = 1;
-  const board = document.getElementById('gaBoardSnl');
-  board.style.display = 'flex';
+function initSNL(){
+  snlPos={p1:0,p2:0}; snlDice=1;
+  const board=document.getElementById('gaBoardSnl');
+  if(board) board.style.display='flex';
   renderSNL();
-  setGameStatus(myGameTurn ? 'YOUR TURN — ROLL THE DICE' : "PARTNER'S TURN");
+  setGameStatus(myGameTurn?'YOUR TURN — ROLL THE DICE':"PARTNER'S TURN");
 }
 
-function renderSNL() {
-  const board = document.getElementById('gaBoardSnl');
-  const cells = [];
-  // Board goes bottom-left to top-right, alternating row direction
-  for (let row=9; row>=0; row--) {
-    const rowNums = [];
-    for (let col=0; col<10; col++) rowNums.push(row*10 + col + 1);
-    if ((9-row)%2===1) rowNums.reverse();
-    cells.push(...rowNums);
+function renderSNL(){
+  const board=document.getElementById('gaBoardSnl'); if(!board) return;
+  const cells=[]; // build 100→1 grid, alternating row direction
+  for(let row=9;row>=0;row--){
+    const nums=Array.from({length:10},(_,c)=>row*10+c+1);
+    if((9-row)%2===1) nums.reverse();
+    cells.push(...nums);
   }
-  const myP  = gameRole==='p1'?'p1':'p2';
-  const oppP = gameRole==='p1'?'p2':'p1';
-
-  board.innerHTML = `<div class="snl-wrap">
-    <div class="snl-board">
-      ${cells.map(n => {
-        const isSnake  = SNL_SNAKES[n]  !== undefined;
-        const isLadder = SNL_LADDERS[n] !== undefined;
-        const hasMe    = snlPositions[myP]  === n;
-        const hasOpp   = snlPositions[oppP] === n;
-        const cls = isSnake?'snake':isLadder?'ladder':'';
-        const both = hasMe && hasOpp;
-        return `<div class="snl-cell ${cls} ${both?'both-here':hasMe?'p1-here':hasOpp?'p2-here':''}" title="${isSnake?'🐍→'+SNL_SNAKES[n]:isLadder?'🪜→'+SNL_LADDERS[n]:''}">
-          <span style="font-size:7px;opacity:0.5;">${n}</span>
-        </div>`;
-      }).join('')}
-    </div>
+  const myP=gameRole==='p1'?'p1':'p2', oppP=gameRole==='p1'?'p2':'p1';
+  board.innerHTML=`<div class="snl-wrap">
+    <div class="snl-board">${
+      cells.map(n=>{
+        const isS=SNL_SNAKES[n]!==undefined, isL=SNL_LADDERS[n]!==undefined;
+        const hM=snlPos[myP]===n, hO=snlPos[oppP]===n;
+        return `<div class="snl-cell ${isS?'snake':isL?'ladder':''} ${hM&&hO?'both-here':hM?'p1-here':hO?'p2-here':''}"
+          title="${isS?'🐍→'+SNL_SNAKES[n]:isL?'🪜→'+SNL_LADDERS[n]:''}">
+          <span style="font-size:7px;opacity:0.5;">${n}</span></div>`;
+      }).join('')
+    }</div>
     <div class="snl-dice-row">
       <div class="snl-die" id="snlDie">${['','⚀','⚁','⚂','⚃','⚄','⚅'][snlDice]}</div>
-      <button class="snl-roll-btn" id="snlRollBtn" onclick="snlRoll()" ${!myGameTurn||gameOver?'disabled':''}>
-        Roll Dice
-      </button>
+      <button class="snl-roll-btn" onclick="snlRoll()" ${!myGameTurn||gameOver?'disabled':''}>Roll Dice</button>
     </div>
     <div class="snl-legend">
-      <div class="snl-leg-item"><div class="snl-leg-dot" style="background:rgba(255,80,80,0.5);"></div>🐍 Snake</div>
-      <div class="snl-leg-item"><div class="snl-leg-dot" style="background:rgba(61,207,184,0.5);"></div>🪜 Ladder</div>
-      <div class="snl-leg-item">🦊 You &nbsp; 🐺 Partner</div>
+      <div class="snl-leg-item"><div class="snl-leg-dot" style="background:rgba(255,80,80,0.5)"></div>🐍 Snake</div>
+      <div class="snl-leg-item"><div class="snl-leg-dot" style="background:rgba(61,207,184,0.5)"></div>🪜 Ladder</div>
+      <div class="snl-leg-item">🦊 You &nbsp;🐺 Partner</div>
     </div>
   </div>`;
 }
 
-function snlRoll() {
-  if (!myGameTurn || gameOver) return;
-  const roll = Math.floor(Math.random()*6)+1;
-  snlDice = roll;
-  const myP = gameRole==='p1'?'p1':'p2';
-  let newPos = snlPositions[myP] + roll;
-  if (newPos > 100) newPos = snlPositions[myP]; // can't overshoot 100
-  if (SNL_SNAKES[newPos])  { showToast('🐍 Snake! Go down to '+SNL_SNAKES[newPos]); newPos=SNL_SNAKES[newPos]; }
-  if (SNL_LADDERS[newPos]) { showToast('🪜 Ladder! Climb to '+SNL_LADDERS[newPos]); newPos=SNL_LADDERS[newPos]; }
-  snlPositions[myP] = newPos;
-  myGameTurn = false;
-  emitGameMove({ roll, newPos, player: myP });
-
-  // Animate die
-  const die = document.getElementById('snlDie');
-  if (die) { die.classList.add('rolling'); setTimeout(()=>die.classList.remove('rolling'),500); }
-
+function snlRoll(){
+  if(!myGameTurn||gameOver) return;
+  const roll=Math.floor(Math.random()*6)+1; snlDice=roll;
+  const myP=gameRole==='p1'?'p1':'p2';
+  let newPos=snlPos[myP]+roll;
+  if(newPos>100) newPos=snlPos[myP];
+  if(SNL_SNAKES[newPos])  {showToast('🐍 Snake! Down to '+SNL_SNAKES[newPos]);  newPos=SNL_SNAKES[newPos];}
+  if(SNL_LADDERS[newPos]) {showToast('🪜 Ladder! Up to '+SNL_LADDERS[newPos]); newPos=SNL_LADDERS[newPos];}
+  snlPos[myP]=newPos; myGameTurn=false;
+  emitGameMove({roll,newPos,player:myP});
+  const die=document.getElementById('snlDie');
+  if(die){die.classList.add('rolling');setTimeout(()=>die.classList.remove('rolling'),500);}
   renderSNL();
-  if (newPos >= 100) { showGameResult(true); return; }
+  if(newPos>=100){showGameResult(true);return;}
   setGameStatus("PARTNER'S TURN");
 }
 
-function applySNLMove({ roll, newPos, player }) {
-  snlDice = roll;
-  snlPositions[player] = newPos;
-  myGameTurn = true;
+function applySNLMove({roll,newPos,player}){
+  snlDice=roll; snlPos[player]=newPos; myGameTurn=true;
   renderSNL();
-  if (newPos >= 100) { showGameResult(false); return; }
+  if(newPos>=100){showGameResult(false);return;}
   setGameStatus('YOUR TURN — ROLL THE DICE');
 }
-
-// ── Hook game signals after socket is ready ───────────────────
-// Called from initSocket() so we know socket exists
-const _origInitSocket = initSocket;
-initSocket = function() {
-  _origInitSocket();
-  // Hook game-related lab-signal events (deduplicate, socket listener already added)
-};
-
-// Extend the lab-signal handler to process game signals
-// We patch this by intercepting socket events after startMatchmaking sets up the socket
-function patchSocketForGames() {
-  if (!socket) return;
-  // Remove risk of duplicate handlers — use a flag
-  if (socket._gameHooked) return;
-  socket._gameHooked = true;
-  socket.on('lab-signal', (d) => {
-    if (d.gamePickSignal !== undefined) {
-      const theirPick = d.gamePickSignal;
-      if (myGameChoice === theirPick) {
-        startGame(theirPick);
-      } else if (theirPick) {
-        const g = GAMES.find(x=>x.id===theirPick);
-        showToast('Partner wants ' + (g?g.name:theirPick) + ' — pick the same to start!');
-        // Highlight their pick
-        document.querySelectorAll('.game-card').forEach(el=>{
-          el.style.outline = el.id==='gc-'+theirPick ? '1.5px solid rgba(155,111,255,0.45)' : '';
-        });
-      }
-    }
-    if (d.gameMove)    receiveGameMove(d.gameMove);
-    if (d.gameQuit)    { showToast('Partner quit the game'); forceEndGame(); }
-    if (d.gameRematch) { showToast('Partner wants a rematch!'); startGame(d.gameRematch); }
-  });
-}
-
-// Wrap startMatchmaking to also patch socket for games
-const _origStartMatchmaking = startMatchmaking;
-startMatchmaking = async function() {
-  await _origStartMatchmaking();
-  setTimeout(patchSocketForGames, 500);
-};
 </script>
 </body>
 </html>
