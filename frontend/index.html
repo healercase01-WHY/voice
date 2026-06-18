@@ -786,6 +786,43 @@ html{background:var(--bg);color:var(--txt);font-family:var(--gf);overflow-x:hidd
 .snl-leg-item { display: flex; align-items: center; gap: 5px; }
 .snl-leg-dot { width: 8px; height: 8px; border-radius: 2px; }
 
+/* ── CHESS ── */
+.chess-wrap { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%; }
+.chess-board {
+  display: grid; grid-template-columns: repeat(8, 1fr);
+  width: min(304px, 92%); aspect-ratio: 1;
+  border-radius: 8px; overflow: hidden;
+  border: 1px solid var(--line2);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+}
+.chess-sq {
+  aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; position: relative; transition: background 0.15s;
+}
+.chess-sq.light { background: #2a2e45; }
+.chess-sq.dark  { background: #181b2c; }
+.chess-sq.selected { background: rgba(99,120,255,0.35) !important; }
+.chess-sq.legal-move::after {
+  content: ''; position: absolute; width: 22%; height: 22%; border-radius: 50%;
+  background: rgba(61,207,184,0.45);
+}
+.chess-sq.legal-capture { box-shadow: inset 0 0 0 3px rgba(255,107,157,0.55); }
+.chess-sq.king-check { background: rgba(255,80,80,0.32) !important; }
+.chess-piece {
+  font-size: clamp(18px, 5.5vw, 28px); line-height: 1; user-select: none;
+  transition: transform 0.12s;
+}
+.chess-piece.cp-w { color: #f3f3f8; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.6)); }
+.chess-piece.cp-b { color: #15151f; filter: drop-shadow(0 1px 1px rgba(255,255,255,0.12)); }
+.chess-sq:hover .chess-piece { transform: scale(1.1); }
+.chess-meta {
+  display: flex; align-items: center; justify-content: space-between;
+  width: min(304px, 92%); font-family: var(--mf); font-size: 9px;
+  color: var(--txt3); letter-spacing: 0.5px;
+}
+.chess-turn-indicator { color: var(--a2); }
+.chess-last-move { color: var(--txt3); }
+
 /* When call-col is narrow, compact the chat-pg */
 .chat-root.game-open .chat-pg { padding: 16px 12px 12px; }
 .chat-root.game-open .users-row { gap: 16px; margin-bottom: 14px; }
@@ -1208,6 +1245,7 @@ html{background:var(--bg);color:var(--txt);font-family:var(--gf);overflow-x:hidd
           <div id="gaBoardTtt" class="ga-board" style="display:none;"></div>
           <div id="gaBoardC4"  class="ga-board" style="display:none;"></div>
           <div id="gaBoardSnl" class="ga-board" style="display:none;"></div>
+          <div id="gaBoardChess" class="ga-board" style="display:none;"></div>
           <div class="ga-result" id="gaResult" style="display:none;">
             <div class="gar-emoji" id="garEmoji">🎉</div>
             <div class="gar-msg"  id="garMsg">—</div>
@@ -1250,6 +1288,7 @@ html{background:var(--bg);color:var(--txt);font-family:var(--gf);overflow-x:hidd
 <div class="toast-wrap"><div class="toast" id="toast"></div></div>
 
 <script src="https://voicematch-backend-rure.onrender.com/socket.io/socket.io.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.13.4/chess.min.js"></script>
 <script>
 // ═══════════════════════════════════════════════════════════════
 //  VoiceMatch Frontend v5 — All 8 fixes applied
@@ -2353,9 +2392,10 @@ setTimeout(()=>{
 // ═══════════════════════════════════════════════════════════════
 
 const GAMES = [
-  { id:'ttt', name:'Tic Tac Toe',   emoji:'⭕', desc:'Classic 3×3'   },
-  { id:'c4',  name:'Connect Four',  emoji:'🔴', desc:'Drop & connect' },
-  { id:'snl', name:'Snake & Ladder',emoji:'🎲', desc:'Roll the dice'  },
+  { id:'ttt',   name:'Tic Tac Toe',   emoji:'⭕', desc:'Classic 3×3'   },
+  { id:'c4',    name:'Connect Four',  emoji:'🔴', desc:'Drop & connect' },
+  { id:'snl',   name:'Snake & Ladder',emoji:'🎲', desc:'Roll the dice'  },
+  { id:'chess', name:'Chess',         emoji:'♟️', desc:'Classic chess'  },
 ];
 
 // ── state ──────────────────────────────────────────────────────
@@ -2467,9 +2507,14 @@ function pickGame(gameId) {
   if (!callActive || !activeRoomId) { showToast('Join a call first'); return; }
   if (activeGame) { showToast('A game is already running'); return; }
 
-  // If both picked same already — start immediately
+  // If both picked same already — start immediately AND tell the peer so
+  // they start too. Without emitting here, the peer who picked first stays
+  // stuck on "Waiting for partner..." forever — this was the exact bug:
+  // second picker started their own game locally but never told the first
+  // picker the match happened.
   if (peerGameChoice === gameId) {
     myGameChoice = gameId;
+    socket.emit('lab-signal', { roomId: activeRoomId, gamePickSignal: gameId });
     startGame(gameId);
     return;
   }
@@ -2571,9 +2616,10 @@ function startGame(gameId) {
   // Hide all boards
   document.querySelectorAll('.ga-board').forEach(b => b.style.display='none');
 
-  if (gameId==='ttt') initTTT();
-  if (gameId==='c4')  initC4();
-  if (gameId==='snl') initSNL();
+  if (gameId==='ttt')   initTTT();
+  if (gameId==='c4')    initC4();
+  if (gameId==='snl')   initSNL();
+  if (gameId==='chess') initChess();
 
   showToast('Game on — ' + (myGameTurn?'you go first':'partner goes first'));
 }
@@ -2601,9 +2647,10 @@ function emitGameMove(moveData) {
 
 function receiveGameMove(moveData) {
   if (moveData.game !== activeGame) return;
-  if (moveData.game==='ttt') applyTTTMove(moveData);
-  if (moveData.game==='c4')  applyC4Move(moveData);
-  if (moveData.game==='snl') applySNLMove(moveData);
+  if (moveData.game==='ttt')   applyTTTMove(moveData);
+  if (moveData.game==='c4')    applyC4Move(moveData);
+  if (moveData.game==='snl')   applySNLMove(moveData);
+  if (moveData.game==='chess') applyChessMove(moveData);
 }
 
 function setGameStatus(msg) {
@@ -2822,6 +2869,165 @@ function applySNLMove({roll,newPos,player}){
   if(newPos>=100){showGameResult(false);return;}
   setGameStatus('YOUR TURN — ROLL THE DICE');
 }
+
+// ═══════════════════════════════════════════════════════════════
+//  GAME 4 — CHESS  (uses chess.js for full legal-move validation,
+//  check/checkmate/stalemate detection — far more reliable than a
+//  hand-rolled rules engine)
+// ═══════════════════════════════════════════════════════════════
+let chessGame = null;       // Chess.js instance
+let chessSelected = null;   // currently selected square, e.g. 'e2'
+let chessLegalTargets = []; // legal destination squares for chessSelected
+let chessMyColor = 'w';     // 'w' or 'b'
+let chessFlipped = false;   // black sees board flipped
+
+const CHESS_PIECES = {
+  w: { p:'♙', r:'♖', n:'♘', b:'♗', q:'♕', k:'♔' },
+  b: { p:'♟', r:'♜', n:'♞', b:'♝', q:'♛', k:'♚' }
+};
+
+function initChess() {
+  if (typeof Chess === 'undefined') {
+    setGameStatus('Chess engine failed to load — check connection');
+    showToast('Could not load chess engine');
+    return;
+  }
+  chessGame = new Chess();
+  chessSelected = null;
+  chessLegalTargets = [];
+  // p1 (host) plays White and moves first; p2 plays Black
+  chessMyColor = (gameRole === 'p1') ? 'w' : 'b';
+  chessFlipped = (chessMyColor === 'b');
+  const board = document.getElementById('gaBoardChess');
+  if (board) board.style.display = 'flex';
+  renderChess();
+  setGameStatus(myGameTurn ? 'YOUR TURN — ' + (chessMyColor==='w'?'WHITE':'BLACK') : "PARTNER'S TURN");
+}
+
+function chessSquareName(row, col) {
+  // row 0 = rank 8 (top) in unflipped view
+  const files = 'abcdefgh';
+  const rank = 8 - row;
+  return files[col] + rank;
+}
+
+function renderChess() {
+  const board = document.getElementById('gaBoardChess');
+  if (!board || !chessGame) return;
+
+  const boardState = chessGame.board(); // 8x8 array, [0] = rank8 ... [7] = rank1
+  const inCheck = chessGame.in_check();
+  const checkColor = chessGame.turn(); // side to move, who'd be in check
+
+  let rows = [];
+  for (let r = 0; r < 8; r++) rows.push(r);
+  if (chessFlipped) rows.reverse();
+
+  let html = '<div class="chess-wrap"><div class="chess-board">';
+  for (const r of rows) {
+    let cols = [];
+    for (let c = 0; c < 8; c++) cols.push(c);
+    if (chessFlipped) cols.reverse();
+    for (const c of cols) {
+      const sq = chessSquareName(r, c);
+      const piece = boardState[r][c];
+      const isLight = (r + c) % 2 === 0;
+      const isSelected = chessSelected === sq;
+      const isLegal = chessLegalTargets.includes(sq);
+      const isKingInCheck = piece && piece.type === 'k' && piece.color === checkColor && inCheck;
+      let cls = 'chess-sq ' + (isLight ? 'light' : 'dark');
+      if (isSelected) cls += ' selected';
+      if (isLegal) cls += piece ? ' legal-capture' : ' legal-move';
+      if (isKingInCheck) cls += ' king-check';
+      const glyph = piece ? CHESS_PIECES[piece.color][piece.type] : '';
+      const pieceCls = piece ? ('chess-piece ' + (piece.color==='w'?'cp-w':'cp-b')) : '';
+      html += `<div class="${cls}" onclick="chessClickSquare('${sq}')">
+        ${piece ? `<span class="${pieceCls}">${glyph}</span>` : ''}
+      </div>`;
+    }
+  }
+  html += '</div>';
+
+  // Captured pieces / move history strip (lightweight)
+  const history = chessGame.history();
+  const lastMove = history[history.length-1];
+  html += `<div class="chess-meta">
+    <span class="chess-turn-indicator">${chessGame.turn()==='w'?'⚪':'⚫'} ${chessGame.turn()==='w'?'White':'Black'} to move</span>
+    ${lastMove ? `<span class="chess-last-move">Last: ${lastMove}</span>` : ''}
+  </div></div>`;
+
+  board.innerHTML = html;
+}
+
+function chessClickSquare(sq) {
+  if (!myGameTurn || gameOver || !chessGame) return;
+  if (chessGame.turn() !== chessMyColor) return; // not your color's turn (safety)
+
+  const piece = chessGame.get(sq);
+
+  // If a square is already selected and this is a legal target, make the move
+  if (chessSelected && chessLegalTargets.includes(sq)) {
+    const move = chessGame.move({ from: chessSelected, to: sq, promotion: 'q' });
+    chessSelected = null;
+    chessLegalTargets = [];
+    if (move) {
+      myGameTurn = false;
+      emitGameMove({ from: move.from, to: move.to, promotion: move.promotion || null, fen: chessGame.fen() });
+      renderChess();
+      checkChessGameOver(true);
+      if (!gameOver) setGameStatus("PARTNER'S TURN");
+    }
+    return;
+  }
+
+  // Selecting a piece of your own color
+  if (piece && piece.color === chessMyColor) {
+    chessSelected = sq;
+    const moves = chessGame.moves({ square: sq, verbose: true });
+    chessLegalTargets = moves.map(m => m.to);
+    renderChess();
+    return;
+  }
+
+  // Clicked empty/enemy square with nothing selected — clear selection
+  chessSelected = null;
+  chessLegalTargets = [];
+  renderChess();
+}
+
+function applyChessMove({ from, to, promotion, fen }) {
+  if (!chessGame) return;
+  // Trust the authoritative FEN from the mover (both sides run the same
+  // chess.js rules, but loading FEN directly avoids any desync risk)
+  try {
+    chessGame.load(fen);
+  } catch(e) {
+    // Fallback: replay the move if FEN load fails for any reason
+    try { chessGame.move({ from, to, promotion: promotion||'q' }); } catch(e2) {}
+  }
+  chessSelected = null;
+  chessLegalTargets = [];
+  myGameTurn = true;
+  renderChess();
+  checkChessGameOver(false);
+  if (!gameOver) setGameStatus('YOUR TURN — ' + (chessMyColor==='w'?'WHITE':'BLACK'));
+}
+
+function checkChessGameOver(iJustMoved) {
+  if (!chessGame.game_over()) return;
+  if (chessGame.in_checkmate()) {
+    // The side to move now is checkmated — they lose.
+    // If it's my color to move and I'm checkmated, I lose; otherwise I win.
+    const mateColor = chessGame.turn();
+    const iAmMated = (mateColor === chessMyColor);
+    showGameResult(!iAmMated);
+  } else if (chessGame.in_draw() || chessGame.in_stalemate() || chessGame.in_threefold_repetition()) {
+    showGameResult('draw');
+  } else {
+    showGameResult('draw');
+  }
+}
+
 </script>
 </body>
 </html>
