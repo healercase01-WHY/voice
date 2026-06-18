@@ -587,7 +587,7 @@ html{background:var(--bg);color:var(--txt);font-family:var(--gf);overflow-x:hidd
 }
 
 /* Active game area */
-#gameArea { display: flex; flex-direction: column; height: 100%; overflow: hidden; }
+#gameArea { display: flex; flex-direction: column; height: 100%; overflow: hidden; position: relative; }
 .ga-header {
   display: flex; align-items: center; justify-content: space-between;
   padding: 12px 20px; border-bottom: 1px solid var(--line); flex-shrink: 0;
@@ -634,6 +634,17 @@ html{background:var(--bg);color:var(--txt);font-family:var(--gf);overflow-x:hidd
   cursor: pointer; transition: all 0.22s;
 }
 .ga-rematch-btn:hover { background: rgba(155,111,255,0.22); border-color: rgba(155,111,255,0.55); }
+
+/* ── Confetti burst on win ── */
+.confetti-piece {
+  position: absolute; top: 30%; width: 8px; height: 12px;
+  border-radius: 2px; opacity: 0.95; z-index: 11; pointer-events: none;
+  animation: confettiFall 1.6s cubic-bezier(0.25,0.46,0.45,0.94) forwards;
+}
+@keyframes confettiFall {
+  0%   { transform: translate(0,0) rotate(0deg); opacity: 1; }
+  100% { transform: translate(var(--dx), 420px) rotate(var(--rot)); opacity: 0; }
+}
 
 /* ── FIX 5: game card fill bar + peer-wants state ── */
 .gc-fill-bar {
@@ -725,6 +736,8 @@ html{background:var(--bg);color:var(--txt);font-family:var(--gf);overflow-x:hidd
 }
 .ttt-x { color: var(--a1); }
 .ttt-o { color: var(--a4); }
+.piece-pop { display: inline-block; animation: piecePop 0.32s cubic-bezier(0.2,0,0,1.4); }
+@keyframes piecePop { 0%{transform:scale(0);opacity:0;} 60%{transform:scale(1.25);opacity:1;} 100%{transform:scale(1);} }
 
 /* ── CONNECT FOUR ── */
 .c4-wrap { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%; }
@@ -745,45 +758,74 @@ html{background:var(--bg);color:var(--txt);font-family:var(--gf);overflow-x:hidd
 .c4-cell {
   width: 36px; height: 36px; border-radius: 50%;
   background: var(--bg2); border: 1px solid var(--line);
-  transition: all 0.25s;
+  transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
 }
 .c4-cell.p1 { background: var(--a1); border-color: rgba(99,120,255,0.5); box-shadow: 0 0 10px rgba(99,120,255,0.3); }
 .c4-cell.p2 { background: var(--a4); border-color: rgba(255,107,157,0.5); box-shadow: 0 0 10px rgba(255,107,157,0.3); }
 .c4-cell.win-cell { animation: winPulse 0.6s ease-in-out 3; }
+.c4-cell.c4-drop-anim { animation: c4Drop 0.38s cubic-bezier(0.5,0,0.85,0.4); }
+@keyframes c4Drop { 0%{transform:translateY(var(--drop-dist));} 100%{transform:translateY(0);} }
 @keyframes winPulse { 0%,100%{transform:scale(1);}50%{transform:scale(1.18);} }
 
+
 /* ── SNAKE & LADDER ── */
-.snl-wrap { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%; }
+.snl-wrap { display: flex; flex-direction: column; align-items: center; gap: 12px; width: 100%; }
 .snl-board {
   display: grid; grid-template-columns: repeat(10, 1fr);
-  gap: 2px; width: min(320px,90%); background: var(--bg3);
-  border: 1px solid var(--line); border-radius: 10px; padding: 6px;
+  gap: 3px; width: min(330px,92%); background: var(--bg3);
+  border: 1px solid var(--line2); border-radius: 12px; padding: 8px;
+  box-shadow: 0 6px 28px rgba(0,0,0,0.3);
 }
 .snl-cell {
-  aspect-ratio: 1; border-radius: 4px; background: var(--bg4);
+  aspect-ratio: 1; border-radius: 5px; background: var(--bg4);
   border: 1px solid var(--line); display: flex; align-items: center;
   justify-content: center; font-size: 9px; color: var(--txt3);
-  font-family: var(--mf); position: relative; transition: background 0.2s;
+  font-family: var(--mf); position: relative; transition: background 0.25s, transform 0.2s;
+  overflow: visible;
 }
-.snl-cell.snake { background: rgba(255,80,80,0.1); border-color: rgba(255,80,80,0.2); }
-.snl-cell.ladder { background: rgba(61,207,184,0.1); border-color: rgba(61,207,184,0.2); }
-.snl-cell.p1-here::after { content:'🦊'; font-size:11px; position:absolute; }
-.snl-cell.p2-here::after { content:'🐺'; font-size:11px; position:absolute; }
-.snl-cell.both-here::after { content:'🦊🐺'; font-size:8px; position:absolute; }
-.snl-dice-row { display: flex; align-items: center; gap: 14px; margin-top: 4px; }
+.snl-cell-num { opacity: 0.45; font-size: 8px; }
+.snl-token-layer {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  gap: 1px; pointer-events: none;
+}
+.snl-token {
+  font-size: 13px; line-height: 1; filter: drop-shadow(0 1px 3px rgba(0,0,0,0.5));
+  transition: left 0.14s linear, top 0.14s linear;
+  animation: snlTokenBounce 0.4s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes snlTokenBounce { 0%{transform:scale(0.3) translateY(-6px);} 60%{transform:scale(1.15);} 100%{transform:scale(1);} }
+.snl-cell.snake {
+  background: linear-gradient(135deg, rgba(255,80,80,0.18), rgba(255,80,80,0.06));
+  border-color: rgba(255,80,80,0.35);
+}
+.snl-cell.snake::before { content:'🐍'; position:absolute; font-size:10px; opacity:0.55; top:1px; right:1px; }
+.snl-cell.ladder {
+  background: linear-gradient(135deg, rgba(61,207,184,0.18), rgba(61,207,184,0.06));
+  border-color: rgba(61,207,184,0.35);
+}
+.snl-cell.ladder::before { content:'🪜'; position:absolute; font-size:10px; opacity:0.55; top:1px; right:1px; }
+.snl-cell.snl-slide-down { animation: snlShakeDown 0.38s ease-in-out; }
+.snl-cell.snl-slide-up   { animation: snlShakeUp 0.38s ease-in-out; }
+@keyframes snlShakeDown { 0%,100%{transform:translateY(0);} 50%{transform:translateY(4px) scale(0.92);} }
+@keyframes snlShakeUp   { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-4px) scale(1.08);} }
+
+.snl-dice-row { display: flex; align-items: center; gap: 16px; margin-top: 2px; }
 .snl-die {
-  width: 44px; height: 44px; background: var(--bg2); border: 1.5px solid var(--line2);
-  border-radius: 10px; display: flex; align-items: center; justify-content: center;
-  font-size: 24px; transition: transform 0.2s; user-select: none;
+  width: 48px; height: 48px; background: linear-gradient(145deg, var(--bg3), var(--bg2));
+  border: 1.5px solid rgba(99,120,255,0.35); border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 28px; transition: transform 0.15s; user-select: none;
+  box-shadow: 0 4px 16px rgba(99,120,255,0.15), inset 0 1px 0 rgba(255,255,255,0.05);
 }
-.snl-die.rolling { animation: dieRoll 0.5s ease-in-out; }
-@keyframes dieRoll { 0%,100%{transform:rotate(0deg);}25%{transform:rotate(-20deg);}75%{transform:rotate(20deg);} }
+.snl-die.rolling { animation: dieRoll 0.06s linear infinite; }
+@keyframes dieRoll { 0%{transform:rotate(0deg) scale(1);} 50%{transform:rotate(8deg) scale(1.08);} 100%{transform:rotate(-8deg) scale(1);} }
 .snl-roll-btn {
-  background: rgba(99,120,255,0.1); border: 1px solid rgba(99,120,255,0.3);
+  background: linear-gradient(135deg, rgba(99,120,255,0.16), rgba(155,111,255,0.12));
+  border: 1px solid rgba(99,120,255,0.35);
   color: var(--a1); font-family: var(--mf); font-size: 9px; letter-spacing: 1.5px;
-  text-transform: uppercase; padding: 9px 18px; border-radius: 8px; cursor: pointer; transition: all 0.2s;
+  text-transform: uppercase; padding: 10px 20px; border-radius: 9px; cursor: pointer; transition: all 0.2s;
 }
-.snl-roll-btn:hover { background: rgba(99,120,255,0.2); }
+.snl-roll-btn:hover:not(:disabled) { background: linear-gradient(135deg, rgba(99,120,255,0.28), rgba(155,111,255,0.2)); transform: translateY(-1px); }
 .snl-roll-btn:disabled { opacity: 0.35; cursor: default; }
 .snl-legend { display: flex; gap: 12px; font-family: var(--mf); font-size: 9px; color: var(--txt3); letter-spacing: 0.5px; }
 .snl-leg-item { display: flex; align-items: center; gap: 5px; }
@@ -2414,6 +2456,48 @@ let myGameTurn     = false;
 let gameOver       = false;
 let gameSocketHooked = false; // prevent duplicate listeners
 
+// ── Game sound effects ──────────────────────────────────────────
+// All synthesized via Web Audio — no external sound files needed,
+// so there's nothing that can 404 or get blocked.
+let gameSfxCtx = null;
+function ensureGameSfxCtx() {
+  if (!gameSfxCtx || gameSfxCtx.state === 'closed') {
+    gameSfxCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (gameSfxCtx.state === 'suspended') gameSfxCtx.resume().catch(()=>{});
+  return gameSfxCtx;
+}
+
+function gfxTone(freq, duration, type='sine', gain=0.18, delay=0) {
+  const ctx = ensureGameSfxCtx();
+  const osc = ctx.createOscillator();
+  const g   = ctx.createGain();
+  osc.type = type;
+  osc.frequency.value = freq;
+  g.gain.value = gain;
+  osc.connect(g); g.connect(ctx.destination);
+  const t0 = ctx.currentTime + delay;
+  g.gain.setValueAtTime(gain, t0);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + duration);
+  osc.start(t0);
+  osc.stop(t0 + duration + 0.02);
+}
+
+const gameSfx = {
+  place()   { gfxTone(520, 0.09, 'sine', 0.16); },                       // piece placed (ttt/c4)
+  drop()    { gfxTone(280, 0.12, 'triangle', 0.18); gfxTone(180,0.15,'sine',0.12,0.06); }, // c4 drop
+  select()  { gfxTone(660, 0.06, 'sine', 0.10); },                       // chess piece selected
+  move()    { gfxTone(440, 0.08, 'sine', 0.14); gfxTone(550,0.08,'sine',0.10,0.05); }, // chess move
+  capture() { gfxTone(220, 0.05, 'square', 0.12); gfxTone(160,0.12,'sawtooth',0.10,0.04); }, // chess capture
+  dice()    { for(let i=0;i<4;i++) gfxTone(300+Math.random()*200, 0.04, 'square', 0.07, i*0.05); }, // dice rattle
+  ladder()  { [440,550,660,770].forEach((f,i)=>gfxTone(f,0.12,'sine',0.14,i*0.08)); }, // climb up
+  snake()   { [500,400,300,220].forEach((f,i)=>gfxTone(f,0.14,'sawtooth',0.12,i*0.07)); }, // slide down
+  win()     { [523,659,784,1047].forEach((f,i)=>gfxTone(f,0.22,'sine',0.16,i*0.1)); }, // victory fanfare
+  lose()    { [392,330,262].forEach((f,i)=>gfxTone(f,0.28,'sine',0.14,i*0.12)); },      // descending sad tone
+  draw()    { gfxTone(440,0.18,'sine',0.13); gfxTone(440,0.18,'sine',0.13,0.2); },      // neutral double beep
+  check()   { gfxTone(880,0.1,'square',0.1); gfxTone(880,0.1,'square',0.1,0.12); },     // chess check alert
+};
+
 // ── FIX 3 + 6: Full reset, called from endCallAndReset ────────
 function resetGamePanelFully() {
   activeGame = null; myGameChoice = null; peerGameChoice = null;
@@ -2428,6 +2512,8 @@ function resetGamePanelFully() {
   if (txt) txt.textContent = 'Play Game';
   // Reset notification badge
   updateGameBtnBadge(false);
+  // Restore icebreaker card visibility
+  document.querySelectorAll('.ice-box').forEach(el => el.style.display = '');
 }
 
 // ── FIX 6: Play Game button — floating right-middle pill ──────
@@ -2625,6 +2711,11 @@ function startGame(gameId) {
   // Hide all boards
   document.querySelectorAll('.ga-board').forEach(b => b.style.display='none');
 
+  // Hide the icebreaker card and report bar while a game is active — they
+  // take up vertical space in the now-narrow call column and aren't
+  // needed while playing.
+  document.querySelectorAll('.ice-box').forEach(el => el.style.display = 'none');
+
   if (gameId==='ttt')   initTTT();
   if (gameId==='c4')    initC4();
   if (gameId==='snl')   initSNL();
@@ -2640,6 +2731,9 @@ function quitGame() {
 
 function forceEndGame() {
   activeGame=null; myGameChoice=null; peerGameChoice=null; gameOver=false;
+  snlAnimating=false; // safety: don't leave roll button stuck disabled if quit mid-animation
+  // Restore the icebreaker card now that no game is active
+  document.querySelectorAll('.ice-box').forEach(el => el.style.display = '');
   showGameLobby();
 }
 
@@ -2681,10 +2775,28 @@ function showGameResult(win) {
   const emoji = document.getElementById('garEmoji');
   const msg   = document.getElementById('garMsg');
   if (!el) return;
-  if (win==='draw') { emoji.textContent='🤝'; msg.textContent='DRAW — WELL PLAYED'; }
-  else if (win)     { emoji.textContent='🎉'; msg.textContent='YOU WIN!'; }
-  else              { emoji.textContent='💀'; msg.textContent='YOU LOSE'; }
+  if (win==='draw') { emoji.textContent='🤝'; msg.textContent='DRAW — WELL PLAYED'; gameSfx.draw(); }
+  else if (win)     { emoji.textContent='🎉'; msg.textContent='YOU WIN!'; gameSfx.win(); spawnConfetti(); }
+  else              { emoji.textContent='💀'; msg.textContent='YOU LOSE'; gameSfx.lose(); }
   el.style.display='flex';
+}
+
+// ── Lightweight confetti burst for wins ─────────────────────────
+function spawnConfetti() {
+  const area = document.getElementById('gameArea');
+  if (!area) return;
+  const colors = ['#6378ff','#9b6fff','#3dcfb8','#ff6b9d','#ffd666'];
+  for (let i = 0; i < 28; i++) {
+    const piece = document.createElement('div');
+    piece.className = 'confetti-piece';
+    piece.style.left = (40 + Math.random()*20) + '%';
+    piece.style.background = colors[Math.floor(Math.random()*colors.length)];
+    piece.style.animationDelay = (Math.random()*0.3) + 's';
+    piece.style.setProperty('--dx', (Math.random()*240-120) + 'px');
+    piece.style.setProperty('--rot', (Math.random()*720-360) + 'deg');
+    area.appendChild(piece);
+    setTimeout(() => piece.remove(), 1800);
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -2700,14 +2812,14 @@ function initTTT() {
   setGameStatus(myGameTurn?'YOUR TURN  ·  '+(gameRole==='p1'?'✕':'◯'):"PARTNER'S TURN");
 }
 
-function renderTTT(winCells=[]) {
+function renderTTT(winCells=[], justPlacedIdx=-1) {
   const board = document.getElementById('gaBoardTtt');
   if (!board) return;
   board.innerHTML = `<div class="ttt-grid">${
     tttBoard.map((cell,i)=>`
       <div class="ttt-cell ${cell?'filled':''} ${winCells.includes(i)?'win-cell':''}"
            onclick="tttClick(${i})">
-        ${cell==='X'?'<span class="ttt-x">✕</span>':cell==='O'?'<span class="ttt-o">◯</span>':''}
+        ${cell==='X'?`<span class="ttt-x ${i===justPlacedIdx?'piece-pop':''}">✕</span>`:cell==='O'?`<span class="ttt-o ${i===justPlacedIdx?'piece-pop':''}">◯</span>`:''}
       </div>`).join('')
   }</div>`;
 }
@@ -2717,9 +2829,10 @@ function tttClick(idx) {
   const mark = gameRole==='p1'?'X':'O';
   tttBoard[idx]=mark;
   myGameTurn=false;
+  gameSfx.place();
   emitGameMove({idx,mark});
   const result=checkTTT();
-  renderTTT(result?.cells||[]);
+  renderTTT(result?.cells||[], idx);
   if (result) { showGameResult(result.winner===mark); return; }
   if (tttBoard.every(c=>c)) { renderTTT(); showGameResult('draw'); return; }
   setGameStatus("PARTNER'S TURN");
@@ -2728,8 +2841,9 @@ function tttClick(idx) {
 function applyTTTMove({idx,mark}) {
   tttBoard[idx]=mark;
   myGameTurn=true;
+  gameSfx.place();
   const result=checkTTT();
-  renderTTT(result?.cells||[]);
+  renderTTT(result?.cells||[], idx);
   const myMark=gameRole==='p1'?'X':'O';
   if (result) { showGameResult(result.winner!==myMark); return; }
   if (tttBoard.every(c=>c)) { renderTTT(); showGameResult('draw'); return; }
@@ -2759,19 +2873,23 @@ function initC4() {
   setGameStatus(myGameTurn?'YOUR TURN — DROP A PIECE':"PARTNER'S TURN");
 }
 
-function renderC4(winCells=[]) {
+function renderC4(winCells=[], justDropped=null) {
   const board=document.getElementById('gaBoardC4');
   if (!board) return;
   const winSet=new Set(winCells.map(([r,c])=>r*C4_COLS+c));
+  const dropKey = justDropped ? justDropped.row*C4_COLS+justDropped.col : -1;
   board.innerHTML=`<div class="c4-wrap">
     <div class="c4-col-btns">${
       Array.from({length:C4_COLS},(_,col)=>`
         <button class="c4-col-btn" onclick="c4Drop(${col})" ${!myGameTurn||gameOver?'disabled':''}>▼</button>`).join('')
     }</div>
     <div class="c4-grid">${
-      c4Board.map((row,r)=>row.map((cell,c)=>`
-        <div class="c4-cell ${cell===1?'p1':cell===2?'p2':''} ${winSet.has(r*C4_COLS+c)?'win-cell':''}"></div>`
-      ).join('')).join('')
+      c4Board.map((row,r)=>row.map((cell,c)=>{
+        const key = r*C4_COLS+c;
+        const isDropped = key===dropKey;
+        return `<div class="c4-cell ${cell===1?'p1':cell===2?'p2':''} ${winSet.has(key)?'win-cell':''} ${isDropped?'c4-drop-anim':''}"
+          style="${isDropped?`--drop-dist:${-(r+1)*40}px;`:''}"></div>`;
+      }).join('')).join('')
     }</div>
     <div style="display:flex;gap:14px;margin-top:6px;font-family:var(--mf);font-size:9px;color:var(--txt3);">
       <span><span style="color:var(--a1);">■</span> ${gameRole==='p1'?'You':'Partner'}</span>
@@ -2785,8 +2903,9 @@ function c4Drop(col) {
   const row=c4FindRow(col); if (row<0){showToast('Column full');return;}
   const myP=gameRole==='p1'?1:2;
   c4Board[row][col]=myP; myGameTurn=false;
+  gameSfx.drop();
   emitGameMove({col,row,player:myP});
-  const win=checkC4(row,col,myP); renderC4(win||[]);
+  const win=checkC4(row,col,myP); renderC4(win||[], {row,col});
   if (win.length){showGameResult(true);return;}
   if (c4Board[0].every(c=>c!==0)){renderC4();showGameResult('draw');return;}
   setGameStatus("PARTNER'S TURN");
@@ -2794,7 +2913,8 @@ function c4Drop(col) {
 
 function applyC4Move({col,row,player}) {
   c4Board[row][col]=player; myGameTurn=true;
-  const win=checkC4(row,col,player); renderC4(win||[]);
+  gameSfx.drop();
+  const win=checkC4(row,col,player); renderC4(win||[], {row,col});
   if (win.length){showGameResult(false);return;}
   if (c4Board[0].every(c=>c!==0)){renderC4();showGameResult('draw');return;}
   setGameStatus('YOUR TURN — DROP A PIECE');
@@ -2818,42 +2938,54 @@ function checkC4(row,col,player){
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  GAME 3 — SNAKE & LADDER
+//  GAME 3 — SNAKE & LADDER  (animated, colorful, with sound)
 // ═══════════════════════════════════════════════════════════════
 const SNL_SNAKES  = {16:4,33:20,48:24,62:44,72:52,88:68,97:76};
 const SNL_LADDERS = {3:22,8:30,20:37,28:76,40:59,60:78,85:95};
-let snlPos={p1:0,p2:0}, snlDice=1;
+let snlPos={p1:0,p2:0}, snlDice=1, snlAnimating=false;
+
+// Distinct color per cell-number-mod for a colorful, non-static board
+const SNL_CELL_HUES = [265,200,160,40,330,20,280,100,10,230];
 
 function initSNL(){
-  snlPos={p1:0,p2:0}; snlDice=1;
+  snlPos={p1:0,p2:0}; snlDice=1; snlAnimating=false;
   const board=document.getElementById('gaBoardSnl');
   if(board) board.style.display='flex';
   renderSNL();
   setGameStatus(myGameTurn?'YOUR TURN — ROLL THE DICE':"PARTNER'S TURN");
 }
 
-function renderSNL(){
-  const board=document.getElementById('gaBoardSnl'); if(!board) return;
-  const cells=[]; // build 100→1 grid, alternating row direction
+function snlCellOrder(){
+  const cells=[]; // build 100→1 grid, alternating row direction (boustrophedon)
   for(let row=9;row>=0;row--){
     const nums=Array.from({length:10},(_,c)=>row*10+c+1);
     if((9-row)%2===1) nums.reverse();
     cells.push(...nums);
   }
+  return cells;
+}
+
+function renderSNL(){
+  const board=document.getElementById('gaBoardSnl'); if(!board) return;
+  const cells=snlCellOrder();
   const myP=gameRole==='p1'?'p1':'p2', oppP=gameRole==='p1'?'p2':'p1';
   board.innerHTML=`<div class="snl-wrap">
     <div class="snl-board">${
-      cells.map(n=>{
+      cells.map((n,idx)=>{
         const isS=SNL_SNAKES[n]!==undefined, isL=SNL_LADDERS[n]!==undefined;
         const hM=snlPos[myP]===n, hO=snlPos[oppP]===n;
-        return `<div class="snl-cell ${isS?'snake':isL?'ladder':''} ${hM&&hO?'both-here':hM?'p1-here':hO?'p2-here':''}"
+        const hue = SNL_CELL_HUES[idx % SNL_CELL_HUES.length];
+        const bgStyle = isS ? '' : isL ? '' : `background:hsla(${hue},55%,42%,0.10);border-color:hsla(${hue},55%,55%,0.18);`;
+        return `<div class="snl-cell ${isS?'snake':isL?'ladder':''}" id="snl-cell-${n}" style="${bgStyle}"
           title="${isS?'🐍→'+SNL_SNAKES[n]:isL?'🪜→'+SNL_LADDERS[n]:''}">
-          <span style="font-size:7px;opacity:0.5;">${n}</span></div>`;
+          <span class="snl-cell-num">${n}</span>
+          <span class="snl-token-layer">${hM?'<span class=\"snl-token snl-token-me\">🦊</span>':''}${hO?'<span class=\"snl-token snl-token-opp\">🐺</span>':''}</span>
+        </div>`;
       }).join('')
     }</div>
     <div class="snl-dice-row">
       <div class="snl-die" id="snlDie">${['','⚀','⚁','⚂','⚃','⚄','⚅'][snlDice]}</div>
-      <button class="snl-roll-btn" onclick="snlRoll()" ${!myGameTurn||gameOver?'disabled':''}>Roll Dice</button>
+      <button class="snl-roll-btn" onclick="snlRoll()" ${!myGameTurn||gameOver||snlAnimating?'disabled':''}>Roll Dice</button>
     </div>
     <div class="snl-legend">
       <div class="snl-leg-item"><div class="snl-leg-dot" style="background:rgba(255,80,80,0.5)"></div>🐍 Snake</div>
@@ -2863,28 +2995,107 @@ function renderSNL(){
   </div>`;
 }
 
-function snlRoll(){
-  if(!myGameTurn||gameOver) return;
-  const roll=Math.floor(Math.random()*6)+1; snlDice=roll;
-  const myP=gameRole==='p1'?'p1':'p2';
-  let newPos=snlPos[myP]+roll;
-  if(newPos>100) newPos=snlPos[myP];
-  if(SNL_SNAKES[newPos])  {showToast('🐍 Snake! Down to '+SNL_SNAKES[newPos]);  newPos=SNL_SNAKES[newPos];}
-  if(SNL_LADDERS[newPos]) {showToast('🪜 Ladder! Up to '+SNL_LADDERS[newPos]); newPos=SNL_LADDERS[newPos];}
-  snlPos[myP]=newPos; myGameTurn=false;
-  emitGameMove({roll,newPos,player:myP});
-  const die=document.getElementById('snlDie');
-  if(die){die.classList.add('rolling');setTimeout(()=>die.classList.remove('rolling'),500);}
-  renderSNL();
-  if(newPos>=100){showGameResult(true);return;}
-  setGameStatus("PARTNER'S TURN");
+// Rolling animation: cycle random die faces for ~500ms before settling
+function animateDieRoll(finalRoll, onDone) {
+  const die = document.getElementById('snlDie');
+  if (!die) { onDone(); return; }
+  let ticks = 0;
+  const faces = ['⚀','⚁','⚂','⚃','⚄','⚅'];
+  die.classList.add('rolling');
+  gameSfx.dice();
+  const interval = setInterval(() => {
+    die.textContent = faces[Math.floor(Math.random()*6)];
+    ticks++;
+    if (ticks >= 8) {
+      clearInterval(interval);
+      die.textContent = faces[finalRoll-1];
+      die.classList.remove('rolling');
+      onDone();
+    }
+  }, 60);
 }
 
-function applySNLMove({roll,newPos,player}){
-  snlDice=roll; snlPos[player]=newPos; myGameTurn=true;
-  renderSNL();
-  if(newPos>=100){showGameResult(false);return;}
-  setGameStatus('YOUR TURN — ROLL THE DICE');
+// Step the token across the board one square at a time so movement is
+// visibly animated rather than teleporting straight to the destination.
+function animateTokenSteps(playerKey, fromPos, toPos, onDone) {
+  let pos = fromPos;
+  const step = () => {
+    if (pos >= toPos) { onDone(); return; }
+    pos++;
+    snlPos[playerKey] = pos;
+    renderSNL();
+    setTimeout(step, 140);
+  };
+  step();
+}
+
+// After landing on a snake/ladder square, slide to the new position with
+// its own distinct animation + sound, separate from the step-walk above.
+function animateSnakeOrLadder(playerKey, landedOn, finalPos, isSnake, onDone) {
+  setTimeout(() => {
+    isSnake ? gameSfx.snake() : gameSfx.ladder();
+    const cellEl = document.getElementById('snl-cell-'+landedOn);
+    if (cellEl) cellEl.classList.add(isSnake ? 'snl-slide-down' : 'snl-slide-up');
+    setTimeout(() => {
+      snlPos[playerKey] = finalPos;
+      renderSNL();
+      showToast(isSnake ? '🐍 Snake! Slid down to '+finalPos : '🪜 Ladder! Climbed up to '+finalPos);
+      onDone();
+    }, 380);
+  }, 200);
+}
+
+function snlRoll(){
+  if(!myGameTurn||gameOver||snlAnimating) return;
+  snlAnimating = true;
+  const roll=Math.floor(Math.random()*6)+1;
+  const myP=gameRole==='p1'?'p1':'p2';
+  const startPos = snlPos[myP];
+  let landedPos = startPos + roll;
+  if (landedPos > 100) landedPos = startPos; // can't overshoot 100
+  const isSnake  = SNL_SNAKES[landedPos]  !== undefined;
+  const isLadder = SNL_LADDERS[landedPos] !== undefined;
+  const finalPos = isSnake ? SNL_SNAKES[landedPos] : isLadder ? SNL_LADDERS[landedPos] : landedPos;
+
+  animateDieRoll(roll, () => {
+    snlDice = roll;
+    animateTokenSteps(myP, startPos, landedPos, () => {
+      const finish = () => {
+        myGameTurn=false; snlAnimating=false;
+        emitGameMove({roll, landedPos, finalPos, player:myP});
+        if (finalPos>=100) { showGameResult(true); return; }
+        setGameStatus("PARTNER'S TURN");
+      };
+      if (isSnake || isLadder) {
+        animateSnakeOrLadder(myP, landedPos, finalPos, isSnake, finish);
+      } else {
+        finish();
+      }
+    });
+  });
+}
+
+function applySNLMove({roll, landedPos, finalPos, player}){
+  snlAnimating = true;
+  const startPos = snlPos[player];
+  const isSnake  = SNL_SNAKES[landedPos]  !== undefined;
+  const isLadder = SNL_LADDERS[landedPos] !== undefined;
+
+  animateDieRoll(roll, () => {
+    snlDice = roll;
+    animateTokenSteps(player, startPos, landedPos, () => {
+      const finish = () => {
+        myGameTurn=true; snlAnimating=false;
+        if (finalPos>=100) { showGameResult(false); return; }
+        setGameStatus('YOUR TURN — ROLL THE DICE');
+      };
+      if (isSnake || isLadder) {
+        animateSnakeOrLadder(player, landedPos, finalPos, isSnake, finish);
+      } else {
+        finish();
+      }
+    });
+  });
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -2903,38 +3114,43 @@ const CHESS_PIECES = {
   b: { p:'♟', r:'♜', n:'♞', b:'♝', q:'♛', k:'♚' }
 };
 
-// ── Dynamic chess.js loader with CDN fallback ──────────────────
-// Some browsers/extensions (ad-blockers, privacy shields) block specific
-// CDN domains. Rather than relying on a single <script> tag that may
-// silently fail to load before initChess() runs, we load it on-demand
-// here and try a second CDN if the first one fails.
+// ── chess.js loader — ES module import ─────────────────────────
+// ROOT CAUSE FOUND: chess.js (all recent versions, including 0.13.4 as
+// published to npm) ships ONLY as an ES module — its file literally
+// contains `export default class Chess {...}`. A classic <script src>
+// tag cannot execute `export` syntax at all — that's not a network or
+// ad-blocker problem, it's a syntax error every single time
+// ("Uncaught SyntaxError: Unexpected token 'export'"), on every CDN,
+// because every CDN serves the exact same npm-published file.
+// Fix: load it as a real ES module via dynamic import().
+let chessCtor = null;
 let chessLibPromise = null;
 function loadChessLib() {
-  if (typeof Chess !== 'undefined') return Promise.resolve(true);
+  if (chessCtor) return Promise.resolve(true);
   if (chessLibPromise) return chessLibPromise;
 
   const sources = [
-    'https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.13.4/chess.min.js',
-    'https://cdn.jsdelivr.net/npm/chess.js@0.13.4/chess.min.js',
-    'https://unpkg.com/chess.js@0.13.4/chess.min.js'
+    'https://cdn.jsdelivr.net/npm/chess.js@1.0.0/dist/esm/chess.js',
+    'https://esm.sh/chess.js@1.0.0',
+    'https://cdn.skypack.dev/chess.js@1.0.0'
   ];
 
   chessLibPromise = (async () => {
     for (const src of sources) {
       try {
-        await new Promise((resolve, reject) => {
-          const tag = document.createElement('script');
-          tag.src = src;
-          tag.onload = resolve;
-          tag.onerror = reject;
-          // Give each CDN ~6s before falling through to the next one
-          setTimeout(reject, 6000);
-          document.head.appendChild(tag);
-        });
-        if (typeof Chess !== 'undefined') return true;
-      } catch (e) { /* try next source */ }
+        const mod = await import(/* @vite-ignore */ src);
+        const Ctor = mod.Chess || mod.default?.Chess || mod.default;
+        if (Ctor) {
+          // Sanity check: can we actually construct it?
+          const test = new Ctor();
+          if (test && typeof test.fen === 'function') {
+            chessCtor = Ctor;
+            return true;
+          }
+        }
+      } catch (e) { console.warn('[Chess] source failed:', src, e.message); }
     }
-    return typeof Chess !== 'undefined';
+    return false;
   })();
 
   return chessLibPromise;
@@ -2946,14 +3162,14 @@ async function initChess() {
   setGameStatus('Loading chess engine…');
 
   const ok = await loadChessLib();
-  if (!ok || typeof Chess === 'undefined') {
+  if (!ok || !chessCtor) {
     setGameStatus('Chess engine failed to load — check connection');
-    if (board) board.innerHTML = '<div class="chess-loading">Could not load chess engine. Check your connection or ad-blocker settings, then try again.</div>';
-    showToast('Could not load chess engine — try disabling ad-blocker/shields for this site');
+    if (board) board.innerHTML = '<div class="chess-loading">Could not load chess engine. Check your internet connection, then try again.</div>';
+    showToast('Could not load chess engine — please retry');
     return;
   }
 
-  chessGame = new Chess();
+  chessGame = new chessCtor();
   chessSelected = null;
   chessLegalTargets = [];
   // p1 (host) plays White and moves first; p2 plays Black
@@ -2976,7 +3192,7 @@ function renderChess() {
   if (!board || !chessGame) return;
 
   const boardState = chessGame.board(); // 8x8 array, [0] = rank8 ... [7] = rank1
-  const inCheck = chessGame.in_check();
+  const inCheck = chessGame.isCheck();
   const checkColor = chessGame.turn(); // side to move, who'd be in check
 
   let rows = [];
@@ -3027,13 +3243,16 @@ function chessClickSquare(sq) {
 
   // If a square is already selected and this is a legal target, make the move
   if (chessSelected && chessLegalTargets.includes(sq)) {
+    const wasCapture = !!chessGame.get(sq); // target occupied = capture
     const move = chessGame.move({ from: chessSelected, to: sq, promotion: 'q' });
     chessSelected = null;
     chessLegalTargets = [];
     if (move) {
       myGameTurn = false;
+      wasCapture ? gameSfx.capture() : gameSfx.move();
       emitGameMove({ from: move.from, to: move.to, promotion: move.promotion || null, fen: chessGame.fen() });
       renderChess();
+      if (chessGame.isCheck() && !chessGame.isCheckmate()) gameSfx.check();
       checkChessGameOver(true);
       if (!gameOver) setGameStatus("PARTNER'S TURN");
     }
@@ -3043,6 +3262,7 @@ function chessClickSquare(sq) {
   // Selecting a piece of your own color
   if (piece && piece.color === chessMyColor) {
     chessSelected = sq;
+    gameSfx.select();
     const moves = chessGame.moves({ square: sq, verbose: true });
     chessLegalTargets = moves.map(m => m.to);
     renderChess();
@@ -3057,6 +3277,7 @@ function chessClickSquare(sq) {
 
 function applyChessMove({ from, to, promotion, fen }) {
   if (!chessGame) return;
+  const wasCapture = !!chessGame.get(to); // target occupied before load = capture
   // Trust the authoritative FEN from the mover (both sides run the same
   // chess.js rules, but loading FEN directly avoids any desync risk)
   try {
@@ -3068,20 +3289,22 @@ function applyChessMove({ from, to, promotion, fen }) {
   chessSelected = null;
   chessLegalTargets = [];
   myGameTurn = true;
+  wasCapture ? gameSfx.capture() : gameSfx.move();
   renderChess();
+  if (chessGame.isCheck() && !chessGame.isCheckmate()) gameSfx.check();
   checkChessGameOver(false);
   if (!gameOver) setGameStatus('YOUR TURN — ' + (chessMyColor==='w'?'WHITE':'BLACK'));
 }
 
 function checkChessGameOver(iJustMoved) {
-  if (!chessGame.game_over()) return;
-  if (chessGame.in_checkmate()) {
+  if (!chessGame.isGameOver()) return;
+  if (chessGame.isCheckmate()) {
     // The side to move now is checkmated — they lose.
     // If it's my color to move and I'm checkmated, I lose; otherwise I win.
     const mateColor = chessGame.turn();
     const iAmMated = (mateColor === chessMyColor);
     showGameResult(!iAmMated);
-  } else if (chessGame.in_draw() || chessGame.in_stalemate() || chessGame.in_threefold_repetition()) {
+  } else if (chessGame.isDraw() || chessGame.isStalemate() || chessGame.isThreefoldRepetition()) {
     showGameResult('draw');
   } else {
     showGameResult('draw');
