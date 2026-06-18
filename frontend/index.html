@@ -606,8 +606,11 @@ html{background:var(--bg);color:var(--txt);font-family:var(--gf);overflow-x:hidd
 .ga-status {
   text-align: center; font-family: var(--mf); font-size: 10px;
   letter-spacing: 1.5px; text-transform: uppercase; color: var(--txt3);
-  padding: 10px 20px; flex-shrink: 0;
+  padding: 10px 20px; flex-shrink: 0; transition: color 0.2s;
 }
+/* Turn indicator colors: green = your turn, red = partner's turn */
+.ga-status.ga-status-mine   { color: var(--a3); }
+.ga-status.ga-status-theirs { color: #ff6b6b; }
 .ga-board {
   flex: 1; display: flex; align-items: center; justify-content: center;
   padding: 12px; overflow: hidden;
@@ -822,6 +825,10 @@ html{background:var(--bg);color:var(--txt);font-family:var(--gf);overflow-x:hidd
 }
 .chess-turn-indicator { color: var(--a2); }
 .chess-last-move { color: var(--txt3); }
+.chess-loading {
+  font-family: var(--mf); font-size: 11px; color: var(--txt3);
+  letter-spacing: 0.5px; text-align: center; padding: 40px 24px; line-height: 1.7;
+}
 
 /* When call-col is narrow, compact the chat-pg */
 .chat-root.game-open .chat-pg { padding: 16px 12px 12px; }
@@ -1288,7 +1295,6 @@ html{background:var(--bg);color:var(--txt);font-family:var(--gf);overflow-x:hidd
 <div class="toast-wrap"><div class="toast" id="toast"></div></div>
 
 <script src="https://voicematch-backend-rure.onrender.com/socket.io/socket.io.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.13.4/chess.min.js"></script>
 <script>
 // ═══════════════════════════════════════════════════════════════
 //  VoiceMatch Frontend v5 — All 8 fixes applied
@@ -2474,6 +2480,9 @@ function showGameLobby() {
   const title = document.getElementById('gpTitle');
   if (title) title.textContent = 'Games';
   buildGameGrid();
+  // Pre-warm chess.js in the background so it's likely already cached
+  // by the time someone actually picks Chess
+  loadChessLib();
 }
 
 // ── FIX 5: Half-filled = peer picked, full = both picked ──────
@@ -2655,7 +2664,15 @@ function receiveGameMove(moveData) {
 
 function setGameStatus(msg) {
   const el = document.getElementById('gaStatus');
-  if (el) el.textContent = msg;
+  if (!el) return;
+  el.textContent = msg;
+  // Color the turn indicator: green when it's your turn, red when it's
+  // the partner's turn. Neutral (no class) for loading/error messages
+  // that don't represent a turn state.
+  el.classList.remove('ga-status-mine', 'ga-status-theirs');
+  if (typeof myGameTurn !== 'undefined' && !gameOver) {
+    el.classList.add(myGameTurn ? 'ga-status-mine' : 'ga-status-theirs');
+  }
 }
 
 function showGameResult(win) {
@@ -2886,19 +2903,62 @@ const CHESS_PIECES = {
   b: { p:'♟', r:'♜', n:'♞', b:'♝', q:'♛', k:'♚' }
 };
 
-function initChess() {
-  if (typeof Chess === 'undefined') {
+// ── Dynamic chess.js loader with CDN fallback ──────────────────
+// Some browsers/extensions (ad-blockers, privacy shields) block specific
+// CDN domains. Rather than relying on a single <script> tag that may
+// silently fail to load before initChess() runs, we load it on-demand
+// here and try a second CDN if the first one fails.
+let chessLibPromise = null;
+function loadChessLib() {
+  if (typeof Chess !== 'undefined') return Promise.resolve(true);
+  if (chessLibPromise) return chessLibPromise;
+
+  const sources = [
+    'https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.13.4/chess.min.js',
+    'https://cdn.jsdelivr.net/npm/chess.js@0.13.4/chess.min.js',
+    'https://unpkg.com/chess.js@0.13.4/chess.min.js'
+  ];
+
+  chessLibPromise = (async () => {
+    for (const src of sources) {
+      try {
+        await new Promise((resolve, reject) => {
+          const tag = document.createElement('script');
+          tag.src = src;
+          tag.onload = resolve;
+          tag.onerror = reject;
+          // Give each CDN ~6s before falling through to the next one
+          setTimeout(reject, 6000);
+          document.head.appendChild(tag);
+        });
+        if (typeof Chess !== 'undefined') return true;
+      } catch (e) { /* try next source */ }
+    }
+    return typeof Chess !== 'undefined';
+  })();
+
+  return chessLibPromise;
+}
+
+async function initChess() {
+  const board = document.getElementById('gaBoardChess');
+  if (board) { board.style.display = 'flex'; board.innerHTML = '<div class="chess-loading">Loading chess engine…</div>'; }
+  setGameStatus('Loading chess engine…');
+
+  const ok = await loadChessLib();
+  if (!ok || typeof Chess === 'undefined') {
     setGameStatus('Chess engine failed to load — check connection');
-    showToast('Could not load chess engine');
+    if (board) board.innerHTML = '<div class="chess-loading">Could not load chess engine. Check your connection or ad-blocker settings, then try again.</div>';
+    showToast('Could not load chess engine — try disabling ad-blocker/shields for this site');
     return;
   }
+
   chessGame = new Chess();
   chessSelected = null;
   chessLegalTargets = [];
   // p1 (host) plays White and moves first; p2 plays Black
   chessMyColor = (gameRole === 'p1') ? 'w' : 'b';
   chessFlipped = (chessMyColor === 'b');
-  const board = document.getElementById('gaBoardChess');
   if (board) board.style.display = 'flex';
   renderChess();
   setGameStatus(myGameTurn ? 'YOUR TURN — ' + (chessMyColor==='w'?'WHITE':'BLACK') : "PARTNER'S TURN");
