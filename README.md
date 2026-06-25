@@ -459,4 +459,4 @@ MIT — do whatever you want with it.
 
 ---
 
-*Built by [healer](https://github.com/healer) · Ranchi, India · 2026*
+*Built by [healer](https://github.com/healer) · , India · 2026*
